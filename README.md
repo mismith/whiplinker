@@ -2,7 +2,7 @@
 
 Connect items visually by drawing whips/links/cables/connectors between them
 
-![Demo](demo.gif)
+[![Demo](demo.gif)](http://mismith.github.io/whiplinker/)
 
 ## Usage
 
