@@ -1,4 +1,4 @@
-window.WhipLinker = class WhipLinker {
+class WhipLinker {
 	constructor(sourceElementsOrSelector, targetElementsOrSelector, options = {}) {
 		// defaults
 		this.options = Object.assign({
@@ -22,60 +22,82 @@ window.WhipLinker = class WhipLinker {
 		// init
 		var WhipLinker = this;
 		this.active = false;
-		this.sourceElements = typeof sourceElementsOrSelector === 'string' ? document.querySelectorAll(sourceElementsOrSelector) : sourceElementsOrSelector || [];
-		this.targetElements = typeof targetElementsOrSelector === 'string' ? document.querySelectorAll(targetElementsOrSelector) : targetElementsOrSelector || [];
+		this.sourceElements = [];
+		this.targetElements = [];
 		
 		// hooks
-		function returnsTruthy(fn, args, yes, no = function(){}) {
-			if (typeof fn === 'function') {
-				var returnValue = fn.apply(this, args);
-				if (returnValue !== undefined) {
-					if ( ! returnValue) {
-						no();
-					} else {
-						yes();
-					}
+		this.addSourceElements(typeof sourceElementsOrSelector === 'string' ? document.querySelectorAll(sourceElementsOrSelector) : sourceElementsOrSelector);
+		this.addTargetElements(typeof targetElementsOrSelector === 'string' ? document.querySelectorAll(targetElementsOrSelector) : targetElementsOrSelector);
+		document.addEventListener('mousemove', e => {
+			if (this.active) {
+				this._to(e.clientX, e.clientY);
+			}
+		});
+		document.addEventListener('mouseup', e => {
+			if (this.active) {
+				this._miss();
+			}
+		});
+	}
+	
+	// setup
+	_returnsTruthy(fn, args, yes = ()=>{}, no = ()=>{}) {
+		if (typeof fn === 'function') {
+			var returnValue = fn.apply(this, args);
+			if (returnValue !== undefined) {
+				if ( ! returnValue) {
+					no();
 				} else {
 					yes();
 				}
 			} else {
 				yes();
 			}
+		} else {
+			yes();
 		}
-		for (var el of this.sourceElements) {
-			el.addEventListener('mousedown', function (e) {
-				returnsTruthy(WhipLinker.options.allowSource, [e.target], () => {
-					WhipLinker.from(e.target);
-					
-					e.preventDefault();
-				})
-			});
-		}
-		document.addEventListener('mousemove', function (e) {
-			if (WhipLinker.active) {
-				WhipLinker.to(e.clientX, e.clientY);
-			}
+	}
+	_hookSourceElement(el) {
+		el.addEventListener('mousedown', e => {
+			this._returnsTruthy(this.options.allowSource, [el], () => {
+				this._from(el);
+				
+				e.preventDefault();
+			})
 		});
-		for (var el of this.targetElements) {
-			el.addEventListener('mouseup', function (e) {
-				if (WhipLinker.active) {
-					returnsTruthy(WhipLinker.options.allowTarget, [e.target], () => {
-						WhipLinker.hit(e.target);
-					}, () => {
-						WhipLinker.miss();
-					});
-				}
-			});
-		}
-		document.addEventListener('mouseup', function (e) {
-			if (WhipLinker.active) {
-				WhipLinker.miss();
+	}
+	_hookTargetElement(el) {
+		el.addEventListener('mouseup', e => {
+			if (this.active) {
+				this._returnsTruthy(this.options.allowTarget, [el], () => {
+					this._hit(el);
+				}, () => {
+					this._miss();
+				});
 			}
 		});
 	}
+	addSourceElement(el) {
+		this.sourceElements.push(el);
+		this._hookSourceElement(el);
+	}
+	addTargetElement(el) {
+		this.targetElements.push(el);
+		this._hookTargetElement(el);
+	}
+	addSourceElements(els) {
+		for (var el of els) {
+			this.addSourceElement(el);
+		}
+	}
+	addTargetElements(els) {
+		for (var el of els) {
+			this.addTargetElement(el);
+		}
+	}
 	
-	// helper
-	snap(el, snapTo = 'center center') {
+	// drawing
+	_snap(el, snapTo = 'center center') {
 		var offset = el.getBoundingClientRect();
 	
 		return {
@@ -83,23 +105,23 @@ window.WhipLinker = class WhipLinker {
 			top:  offset.top  + (/top/.test(snapTo)  ? 0 : (/bottom/.test(snapTo) ? offset.height : offset.height / 2)),
 		};
 	}
-	
-	// methods
-	from(el) {
+	_from(el) {
 		var whiplink = document.createElement('div');
 		whiplink.className = this.options.prefix + 'whiplink';
 		for (var property in this.options.styles.whiplink) {
 			whiplink.style[property] = this.options.styles.whiplink[property];
 		}
 		this.options.container.appendChild(whiplink);
-		this.offset = this.snap(el, this.options.snap);
+		this.offset = this._snap(el, this.options.snap);
 		whiplink.style.left = this.offset.left + 'px';
 		whiplink.style.top  = this.offset.top + 'px';
 		this.active = whiplink;
 		
-		this.emit('from', [el]);
+		this.sourceElement = el;
+		
+		this.emit('from', [el, this.active]);
 	}
-	to(x, y) {
+	_to(x, y) {
 		if (this.active) {
 			x -= this.offset.left;
 			y -= this.offset.top;
@@ -115,17 +137,18 @@ window.WhipLinker = class WhipLinker {
 			this.emit('to', [x, y]);
 		}
 	}
-	hit(el) {
+	_hit(el) {
 		if (this.active) {
-			var offset = this.snap(el, this.options.snap);
-			this.to(offset.left, offset.top);
+			var offset = this._snap(el, this.options.snap);
+			this._to(offset.left, offset.top);
 			
+			this.emit('hit', [el, this.sourceElement, this.active]);
+			
+			this.sourceElement = null;
 			this.active = false;
-			
-			this.emit('hit', [el]);
 		}
 	}
-	miss() {
+	_miss() {
 		if (this.active) {
 			this.active.style.transition = 'width 200ms';
 			this.active.style.width = 0;
@@ -133,13 +156,15 @@ window.WhipLinker = class WhipLinker {
 			setTimeout(() => {
 				el.parentNode.removeChild(el);
 			}, 200);
-			this.active = false;
 			
-			this.emit('miss', []);
+			this.emit('miss', [this.sourceElement, this.active]);
+			
+			this.sourceElement = null;
+			this.active = false;
 		}
 	}
 	
-	// events api
+	// event delegation
 	on(eventType, callback) {
 		if (typeof callback !== 'function') throw new Error('Callback must be a function.');
 		

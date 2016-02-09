@@ -4,8 +4,10 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-window.WhipLinker = function () {
+var WhipLinker = function () {
 	function WhipLinker(sourceElementsOrSelector, targetElementsOrSelector) {
+		var _this = this;
+
 		var options = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
 
 		_classCallCheck(this, WhipLinker);
@@ -32,11 +34,31 @@ window.WhipLinker = function () {
 		// init
 		var _WhipLinker = this;
 		this.active = false;
-		this.sourceElements = typeof sourceElementsOrSelector === 'string' ? document.querySelectorAll(sourceElementsOrSelector) : sourceElementsOrSelector || [];
-		this.targetElements = typeof targetElementsOrSelector === 'string' ? document.querySelectorAll(targetElementsOrSelector) : targetElementsOrSelector || [];
+		this.sourceElements = [];
+		this.targetElements = [];
 
 		// hooks
-		function returnsTruthy(fn, args, yes) {
+		this.addSourceElements(typeof sourceElementsOrSelector === 'string' ? document.querySelectorAll(sourceElementsOrSelector) : sourceElementsOrSelector);
+		this.addTargetElements(typeof targetElementsOrSelector === 'string' ? document.querySelectorAll(targetElementsOrSelector) : targetElementsOrSelector);
+		document.addEventListener('mousemove', function (e) {
+			if (_this.active) {
+				_this._to(e.clientX, e.clientY);
+			}
+		});
+		document.addEventListener('mouseup', function (e) {
+			if (_this.active) {
+				_this._miss();
+			}
+		});
+	}
+
+	// setup
+
+
+	_createClass(WhipLinker, [{
+		key: '_returnsTruthy',
+		value: function _returnsTruthy(fn, args) {
+			var yes = arguments.length <= 2 || arguments[2] === undefined ? function () {} : arguments[2];
 			var no = arguments.length <= 3 || arguments[3] === undefined ? function () {} : arguments[3];
 
 			if (typeof fn === 'function') {
@@ -54,88 +76,108 @@ window.WhipLinker = function () {
 				yes();
 			}
 		}
-		var _iteratorNormalCompletion = true;
-		var _didIteratorError = false;
-		var _iteratorError = undefined;
+	}, {
+		key: '_hookSourceElement',
+		value: function _hookSourceElement(el) {
+			var _this2 = this;
 
-		try {
-			for (var _iterator = this.sourceElements[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-				var el = _step.value;
+			el.addEventListener('mousedown', function (e) {
+				_this2._returnsTruthy(_this2.options.allowSource, [el], function () {
+					_this2._from(el);
 
-				el.addEventListener('mousedown', function (e) {
-					returnsTruthy(_WhipLinker.options.allowSource, [e.target], function () {
-						_WhipLinker.from(e.target);
+					e.preventDefault();
+				});
+			});
+		}
+	}, {
+		key: '_hookTargetElement',
+		value: function _hookTargetElement(el) {
+			var _this3 = this;
 
-						e.preventDefault();
+			el.addEventListener('mouseup', function (e) {
+				if (_this3.active) {
+					_this3._returnsTruthy(_this3.options.allowTarget, [el], function () {
+						_this3._hit(el);
+					}, function () {
+						_this3._miss();
 					});
-				});
-			}
-		} catch (err) {
-			_didIteratorError = true;
-			_iteratorError = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion && _iterator.return) {
-					_iterator.return();
 				}
-			} finally {
-				if (_didIteratorError) {
-					throw _iteratorError;
-				}
-			}
+			});
 		}
+	}, {
+		key: 'addSourceElement',
+		value: function addSourceElement(el) {
+			this.sourceElements.push(el);
+			this._hookSourceElement(el);
+		}
+	}, {
+		key: 'addTargetElement',
+		value: function addTargetElement(el) {
+			this.targetElements.push(el);
+			this._hookTargetElement(el);
+		}
+	}, {
+		key: 'addSourceElements',
+		value: function addSourceElements(els) {
+			var _iteratorNormalCompletion = true;
+			var _didIteratorError = false;
+			var _iteratorError = undefined;
 
-		document.addEventListener('mousemove', function (e) {
-			if (_WhipLinker.active) {
-				_WhipLinker.to(e.clientX, e.clientY);
-			}
-		});
-		var _iteratorNormalCompletion2 = true;
-		var _didIteratorError2 = false;
-		var _iteratorError2 = undefined;
+			try {
+				for (var _iterator = els[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var el = _step.value;
 
-		try {
-			for (var _iterator2 = this.targetElements[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-				var el = _step2.value;
-
-				el.addEventListener('mouseup', function (e) {
-					if (_WhipLinker.active) {
-						returnsTruthy(_WhipLinker.options.allowTarget, [e.target], function () {
-							_WhipLinker.hit(e.target);
-						}, function () {
-							_WhipLinker.miss();
-						});
+					this.addSourceElement(el);
+				}
+			} catch (err) {
+				_didIteratorError = true;
+				_iteratorError = err;
+			} finally {
+				try {
+					if (!_iteratorNormalCompletion && _iterator.return) {
+						_iterator.return();
 					}
-				});
-			}
-		} catch (err) {
-			_didIteratorError2 = true;
-			_iteratorError2 = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion2 && _iterator2.return) {
-					_iterator2.return();
+				} finally {
+					if (_didIteratorError) {
+						throw _iteratorError;
+					}
 				}
+			}
+		}
+	}, {
+		key: 'addTargetElements',
+		value: function addTargetElements(els) {
+			var _iteratorNormalCompletion2 = true;
+			var _didIteratorError2 = false;
+			var _iteratorError2 = undefined;
+
+			try {
+				for (var _iterator2 = els[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+					var el = _step2.value;
+
+					this.addTargetElement(el);
+				}
+			} catch (err) {
+				_didIteratorError2 = true;
+				_iteratorError2 = err;
 			} finally {
-				if (_didIteratorError2) {
-					throw _iteratorError2;
+				try {
+					if (!_iteratorNormalCompletion2 && _iterator2.return) {
+						_iterator2.return();
+					}
+				} finally {
+					if (_didIteratorError2) {
+						throw _iteratorError2;
+					}
 				}
 			}
 		}
 
-		document.addEventListener('mouseup', function (e) {
-			if (_WhipLinker.active) {
-				_WhipLinker.miss();
-			}
-		});
-	}
+		// drawing
 
-	// helper
-
-
-	_createClass(WhipLinker, [{
-		key: 'snap',
-		value: function snap(el) {
+	}, {
+		key: '_snap',
+		value: function _snap(el) {
 			var snapTo = arguments.length <= 1 || arguments[1] === undefined ? 'center center' : arguments[1];
 
 			var offset = el.getBoundingClientRect();
@@ -145,28 +187,27 @@ window.WhipLinker = function () {
 				top: offset.top + (/top/.test(snapTo) ? 0 : /bottom/.test(snapTo) ? offset.height : offset.height / 2)
 			};
 		}
-
-		// methods
-
 	}, {
-		key: 'from',
-		value: function from(el) {
+		key: '_from',
+		value: function _from(el) {
 			var whiplink = document.createElement('div');
 			whiplink.className = this.options.prefix + 'whiplink';
 			for (var property in this.options.styles.whiplink) {
 				whiplink.style[property] = this.options.styles.whiplink[property];
 			}
 			this.options.container.appendChild(whiplink);
-			this.offset = this.snap(el, this.options.snap);
+			this.offset = this._snap(el, this.options.snap);
 			whiplink.style.left = this.offset.left + 'px';
 			whiplink.style.top = this.offset.top + 'px';
 			this.active = whiplink;
 
-			this.emit('from', [el]);
+			this.sourceElement = el;
+
+			this.emit('from', [el, this.active]);
 		}
 	}, {
-		key: 'to',
-		value: function to(x, y) {
+		key: '_to',
+		value: function _to(x, y) {
 			if (this.active) {
 				x -= this.offset.left;
 				y -= this.offset.top;
@@ -183,20 +224,21 @@ window.WhipLinker = function () {
 			}
 		}
 	}, {
-		key: 'hit',
-		value: function hit(el) {
+		key: '_hit',
+		value: function _hit(el) {
 			if (this.active) {
-				var offset = this.snap(el, this.options.snap);
-				this.to(offset.left, offset.top);
+				var offset = this._snap(el, this.options.snap);
+				this._to(offset.left, offset.top);
 
+				this.emit('hit', [el, this.sourceElement, this.active]);
+
+				this.sourceElement = null;
 				this.active = false;
-
-				this.emit('hit', [el]);
 			}
 		}
 	}, {
-		key: 'miss',
-		value: function miss() {
+		key: '_miss',
+		value: function _miss() {
 			if (this.active) {
 				this.active.style.transition = 'width 200ms';
 				this.active.style.width = 0;
@@ -204,13 +246,15 @@ window.WhipLinker = function () {
 				setTimeout(function () {
 					el.parentNode.removeChild(el);
 				}, 200);
-				this.active = false;
 
-				this.emit('miss', []);
+				this.emit('miss', [this.sourceElement, this.active]);
+
+				this.sourceElement = null;
+				this.active = false;
 			}
 		}
 
-		// events api
+		// event delegation
 
 	}, {
 		key: 'on',

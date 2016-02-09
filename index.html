@@ -6,7 +6,12 @@
 </head>
 <body>
 
-<table width="200">
+<table width="300" align="center" style="text-align: center;">
+	<tr>
+		<td colspan="2">
+			Drag from left to right<br /><br />
+		</td>
+	</tr>
 	<tr>
 		<td><input type="radio" class="start" /></td>
 		<td><input type="radio" class="end" /></td>
@@ -24,11 +29,12 @@
 		<td><input type="radio" class="end" /></td>
 	</tr>
 </table>
+<button onclick="var radio = document.createElement('input'); radio.type = 'radio'; radio.className = 'start'; document.body.appendChild(radio); wl.addSourceElement(radio);">dd</button>
 
 <script src="dist/whiplinker.js"></script>
 <script>
 	var srcEl;
-	new WhipLinker('.start', '.end', {
+	var wl = new WhipLinker('.start', document.getElementsByTagName('input'), {
 		allowSource: function (sourceElement) {
 			// limit to only one connection per source
 			return ! sourceElement.classList.contains('linked');
@@ -38,21 +44,19 @@
 			return ! targetElement.classList.contains('linked');
 		},
 	})
-		.on('from', function (sourceElement) {
-			srcEl = sourceElement;
+		.on('from', function (sourceElement, whiplink) {
 			console.log('from', sourceElement);
 		})
 		.on('to', function (x, y) {
 			console.log('to', x, y);
 		})
-		.on('hit', function (targetElement) {
+		.on('hit', function (targetElement, sourceElement, whiplink) {
 			targetElement.classList.add('linked');
-			srcEl.classList.add('linked');
-			srcEl = null;
+			sourceElement.classList.add('linked');
 			console.log('hit', targetElement);
 		})
-		.on('miss', function () {
-			srcEl = null;
+		.on('miss', function (sourceElement, whiplink) {
+			whiplink.style.backgroundColor = 'red';
 			console.log('miss');
 		});
 </script>
