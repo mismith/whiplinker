@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>WhipLinker</title>
+</head>
+<body>
+
+<table width="200">
+	<tr>
+		<td><input type="radio" class="start" /></td>
+		<td><input type="radio" class="end" /></td>
+	</tr>
+	<tr>
+		<td><input type="radio" class="start" /></td>
+		<td><input type="radio" class="end" /></td>
+	</tr>
+	<tr>
+		<td><input type="radio" class="start" /></td>
+		<td><input type="radio" class="end" /></td>
+	</tr>
+	<tr>
+		<td><input type="radio" class="start" /></td>
+		<td><input type="radio" class="end" /></td>
+	</tr>
+</table>
+
+<script src="dist/whiplinker.js"></script>
+<script>
+	var srcEl;
+	new WhipLinker('.start', '.end', {
+		allowSource: function (sourceElement) {
+			// limit to only one connection per source
+			return ! sourceElement.classList.contains('linked');
+		},
+		allowTarget: function (targetElement) {
+			// limit to only one connection per target
+			return ! targetElement.classList.contains('linked');
+		},
+	})
+		.on('from', function (sourceElement) {
+			srcEl = sourceElement;
+			console.log('from', sourceElement);
+		})
+		.on('to', function (x, y) {
+			console.log('to', x, y);
+		})
+		.on('hit', function (targetElement) {
+			targetElement.classList.add('linked');
+			srcEl.classList.add('linked');
+			srcEl = null;
+			console.log('hit', targetElement);
+		})
+		.on('miss', function () {
+			srcEl = null;
+			console.log('miss');
+		});
+</script>
+
+</body>
+</html>

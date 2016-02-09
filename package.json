@@ -1,0 +1,32 @@
+{
+  "name": "WhipLinker",
+  "version": "0.1.0",
+  "description": "Connect items visually by drawing whips/links/cables/connectors between them",
+  "main": "dist/whiplinker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src --watch --out-file dist/whiplinker.js --presets es2015",
+    "serve": "browser-sync start --server --files '*,dist/*' --no-ghost-mode --no-notify",
+    "start": "npm run build & npm run serve"
+  },
+  "keywords": [
+    "whip",
+    "link",
+    "pick",
+    "pickwhip",
+    "connector",
+    "cord",
+    "cable",
+    "string",
+    "prototype",
+    "isadora",
+    "pure data"
+  ],
+  "author": "Murray Smith <murray@mismith.info> (http://mismith.info)",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.5.1",
+    "babel-preset-es2015": "^6.5.0",
+    "browser-sync": "^2.11.1"
+  }
+}
