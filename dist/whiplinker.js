@@ -32,8 +32,8 @@ window.WhipLinker = function () {
 		// init
 		var _WhipLinker = this;
 		this.active = false;
-		this.sourceElements = document.querySelectorAll(sourceElementsOrSelector);
-		this.targetElements = document.querySelectorAll(targetElementsOrSelector);
+		this.sourceElements = typeof sourceElementsOrSelector === 'string' ? document.querySelectorAll(sourceElementsOrSelector) : sourceElementsOrSelector || [];
+		this.targetElements = typeof targetElementsOrSelector === 'string' ? document.querySelectorAll(targetElementsOrSelector) : targetElementsOrSelector || [];
 
 		// hooks
 		function returnsTruthy(fn, args, yes) {

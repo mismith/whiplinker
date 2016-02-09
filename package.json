@@ -1,5 +1,5 @@
 {
-  "name": "WhipLinker",
+  "name": "whiplinker",
   "version": "0.1.0",
   "description": "Connect items visually by drawing whips/links/cables/connectors between them",
   "main": "dist/whiplinker.js",
@@ -22,6 +22,14 @@
     "isadora",
     "pure data"
   ],
+  "homepage": "https://mismith.github.io/whiplinker",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mismith/whiplinker"
+  },
+  "bugs": {
+    "url": "https://github.com/mismith/whiplinker/issues"
+  },
   "author": "Murray Smith <murray@mismith.info> (http://mismith.info)",
   "license": "MIT",
   "devDependencies": {
