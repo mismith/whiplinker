@@ -1,20 +1,39 @@
 class WhipLinker {
 	constructor(source, target, options = {}) {
 		// defaults
-		this.options = Object.assign({
+		this.options = {
 			prefix: 'wl-',
 			container: document.body,
-			styles: {
-				whiplink: {
-					height: '3px',
-					background: 'black',
-					marginTop: '-1.5px',
-					borderRadius: '3px',
-				},
-			},
 			allowSource: function (sourceElement) {},
 			allowTarget: function (targetElement) {},
-		}, options);
+		};
+		this.setOptions(options);
+		
+		var style = document.createElement('style');
+		style.appendChild(document.createTextNode(`
+.${this.options.prefix}whiplink {
+	position: absolute;
+	width: 0;
+	pointer-events: none;
+	transform-origin: left center;
+
+	height: 3px;
+	background: black;
+	margin-top: -1.5px;
+	border-radius: 3px;
+}
+.${this.options.prefix}missed {
+	background: red;
+	width: 0 !important;
+	transition: width 200ms;
+}
+.${this.options.prefix}hit {
+	pointer-events: auto;
+}
+.${this.options.prefix}selected {
+	background: rgb(59, 153, 252);
+}`));
+		document.head.insertBefore(style, document.head.firstChild);
 		
 		// init
 		this.active = false;
@@ -46,6 +65,9 @@ class WhipLinker {
 			}
 		});
 	}
+	setOptions(options = {}) {
+		return Object.assign(this.options, options);
+	}
 	
 	// setup
 	_returnsTruthy(fn, args, yes = ()=>{}, no = ()=>{}) {
@@ -66,7 +88,7 @@ class WhipLinker {
 	}
 	_hookSourceElement(el) {
 		el.addEventListener('mousedown', e => {
-			this._returnsTruthy(this.options.allowSource, [el], () => {
+			this._returnsTruthy(this.options.allowSource, [{sourceElement: el, whiplinkElement: this.active}], () => {
 				this._from(el);
 				
 				e.preventDefault();
@@ -76,7 +98,7 @@ class WhipLinker {
 	_hookTargetElement(el) {
 		el.addEventListener('mouseup', e => {
 			if (this.active) {
-				this._returnsTruthy(this.options.allowTarget, [el], () => {
+				this._returnsTruthy(this.options.allowTarget, [{targetElement: el, sourceElement: this.sourceElement, whiplinkElement: this.active}], () => {
 					this._hit(el);
 				}, () => {
 					this._miss();
@@ -110,7 +132,6 @@ class WhipLinker {
 	
 	// selection
 	_hookWhiplink(el) {
-		el.style.pointerEvents = 'auto';
 		el.addEventListener('click', e => {
 			this.selected.indexOf(el) >= 0 ? this.deselectWhiplink(el) : this.selectWhiplink(el, e.shiftKey);
 			
@@ -124,7 +145,10 @@ class WhipLinker {
 			this.selected.push(el);
 			
 			var hit = this.find(el);
-			if (hit) this.emit('select', [hit]);
+			if (hit) {
+				el.classList.add(this.options.prefix + 'selected');
+				this.emit('select', [hit]);
+			}
 		}
 	}
 	deselectWhiplink(el) {
@@ -133,7 +157,10 @@ class WhipLinker {
 			this.selected.splice(index, 1);
 			
 			var hit = this.find(el);
-			if (hit) this.emit('deselect', [hit]);
+			if (hit) {
+				el.classList.remove(this.options.prefix + 'selected');
+				this.emit('deselect', [hit]);
+			}
 		}
 	}
 	deselectWhiplinks(els = this.selected) {
@@ -173,18 +200,6 @@ class WhipLinker {
 	_from(sourceElement) {
 		var whiplink = document.createElement('div');
 		whiplink.className = this.options.prefix + 'whiplink';
-		for (var property in this.options.styles.whiplink) {
-			whiplink.style[property] = this.options.styles.whiplink[property];
-		}
-		var requiredStyles = {
-			position: 'absolute',
-			width: 0,
-			pointerEvents: 'none',
-			transformOrigin: 'left center',
-		};
-		for (var property in requiredStyles) {
-			whiplink.style[property] = requiredStyles[property];
-		}
 		this.options.container.appendChild(whiplink);
 		
 		this.__from(sourceElement, whiplink);
@@ -226,6 +241,7 @@ class WhipLinker {
 				whiplinkElement: this.active,
 			};
 			this.list.push(hit);
+			this.active.classList.add(this.options.prefix + 'hit');
 			
 			this.emit('hit', [hit]);
 			
@@ -234,8 +250,7 @@ class WhipLinker {
 	}
 	_miss() {
 		if (this.active) {
-			this.active.style.transition = 'width 200ms';
-			this.active.style.width = 0;
+			this.active.classList.add(this.options.prefix + 'missed');
 			var el = this.active;
 			setTimeout(() => {
 				el.parentNode.removeChild(el);

@@ -13,20 +13,17 @@ var WhipLinker = function () {
 		_classCallCheck(this, WhipLinker);
 
 		// defaults
-		this.options = Object.assign({
+		this.options = {
 			prefix: 'wl-',
 			container: document.body,
-			styles: {
-				whiplink: {
-					height: '3px',
-					background: 'black',
-					marginTop: '-1.5px',
-					borderRadius: '3px'
-				}
-			},
 			allowSource: function allowSource(sourceElement) {},
 			allowTarget: function allowTarget(targetElement) {}
-		}, options);
+		};
+		this.setOptions(options);
+
+		var style = document.createElement('style');
+		style.appendChild(document.createTextNode('\n.' + this.options.prefix + 'whiplink {\n\tposition: absolute;\n\twidth: 0;\n\tpointer-events: none;\n\ttransform-origin: left center;\n\n\theight: 3px;\n\tbackground: black;\n\tmargin-top: -1.5px;\n\tborder-radius: 3px;\n}\n.' + this.options.prefix + 'missed {\n\tbackground: red;\n\twidth: 0 !important;\n\ttransition: width 200ms;\n}\n.' + this.options.prefix + 'hit {\n\tpointer-events: auto;\n}\n.' + this.options.prefix + 'selected {\n\tbackground: rgb(59, 153, 252);\n}'));
+		document.head.insertBefore(style, document.head.firstChild);
 
 		// init
 		this.active = false;
@@ -59,10 +56,17 @@ var WhipLinker = function () {
 		});
 	}
 
-	// setup
-
-
 	_createClass(WhipLinker, [{
+		key: 'setOptions',
+		value: function setOptions() {
+			var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+			return Object.assign(this.options, options);
+		}
+
+		// setup
+
+	}, {
 		key: '_returnsTruthy',
 		value: function _returnsTruthy(fn, args) {
 			var yes = arguments.length <= 2 || arguments[2] === undefined ? function () {} : arguments[2];
@@ -89,7 +93,7 @@ var WhipLinker = function () {
 			var _this2 = this;
 
 			el.addEventListener('mousedown', function (e) {
-				_this2._returnsTruthy(_this2.options.allowSource, [el], function () {
+				_this2._returnsTruthy(_this2.options.allowSource, [{ sourceElement: el, whiplinkElement: _this2.active }], function () {
 					_this2._from(el);
 
 					e.preventDefault();
@@ -103,7 +107,7 @@ var WhipLinker = function () {
 
 			el.addEventListener('mouseup', function (e) {
 				if (_this3.active) {
-					_this3._returnsTruthy(_this3.options.allowTarget, [el], function () {
+					_this3._returnsTruthy(_this3.options.allowTarget, [{ targetElement: el, sourceElement: _this3.sourceElement, whiplinkElement: _this3.active }], function () {
 						_this3._hit(el);
 					}, function () {
 						_this3._miss();
@@ -196,7 +200,6 @@ var WhipLinker = function () {
 		value: function _hookWhiplink(el) {
 			var _this4 = this;
 
-			el.style.pointerEvents = 'auto';
 			el.addEventListener('click', function (e) {
 				_this4.selected.indexOf(el) >= 0 ? _this4.deselectWhiplink(el) : _this4.selectWhiplink(el, e.shiftKey);
 
@@ -212,7 +215,10 @@ var WhipLinker = function () {
 				this.selected.push(el);
 
 				var hit = this.find(el);
-				if (hit) this.emit('select', [hit]);
+				if (hit) {
+					el.classList.add(this.options.prefix + 'selected');
+					this.emit('select', [hit]);
+				}
 			}
 		}
 	}, {
@@ -223,7 +229,10 @@ var WhipLinker = function () {
 				this.selected.splice(index, 1);
 
 				var hit = this.find(el);
-				if (hit) this.emit('deselect', [hit]);
+				if (hit) {
+					el.classList.remove(this.options.prefix + 'selected');
+					this.emit('deselect', [hit]);
+				}
 			}
 		}
 	}, {
@@ -286,18 +295,6 @@ var WhipLinker = function () {
 		value: function _from(sourceElement) {
 			var whiplink = document.createElement('div');
 			whiplink.className = this.options.prefix + 'whiplink';
-			for (var property in this.options.styles.whiplink) {
-				whiplink.style[property] = this.options.styles.whiplink[property];
-			}
-			var requiredStyles = {
-				position: 'absolute',
-				width: 0,
-				pointerEvents: 'none',
-				transformOrigin: 'left center'
-			};
-			for (var property in requiredStyles) {
-				whiplink.style[property] = requiredStyles[property];
-			}
 			this.options.container.appendChild(whiplink);
 
 			this.__from(sourceElement, whiplink);
@@ -345,6 +342,7 @@ var WhipLinker = function () {
 					whiplinkElement: this.active
 				};
 				this.list.push(hit);
+				this.active.classList.add(this.options.prefix + 'hit');
 
 				this.emit('hit', [hit]);
 
@@ -355,8 +353,7 @@ var WhipLinker = function () {
 		key: '_miss',
 		value: function _miss() {
 			if (this.active) {
-				this.active.style.transition = 'width 200ms';
-				this.active.style.width = 0;
+				this.active.classList.add(this.options.prefix + 'missed');
 				var el = this.active;
 				setTimeout(function () {
 					el.parentNode.removeChild(el);

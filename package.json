@@ -18,9 +18,11 @@
     "cord",
     "cable",
     "string",
-    "prototype",
+    "patches",
     "isadora",
-    "pure data"
+    "pure data",
+	"dataflow",
+	"datastream"
   ],
   "homepage": "https://mismith.github.io/whiplinker",
   "repository": {

@@ -59,13 +59,13 @@
 <script>
 window.addEventListener('DOMContentLoaded', function () {
 	var wl = new WhipLinker('.start', '.end', {
-		allowSource: function (sourceElement) {
+		allowSource: function (e) {
 			// limit to only one connection per source
-			return ! sourceElement.checked;
+			return ! e.sourceElement.checked;
 		},
-		allowTarget: function (targetElement) {
+		allowTarget: function (e) {
 			// limit to only one connection per target
-			return ! targetElement.checked;
+			return ! e.targetElement.checked;
 		},
 	})
 		.on('from', function (e) {
@@ -80,7 +80,6 @@ window.addEventListener('DOMContentLoaded', function () {
 			//console.log('hit', e);
 		})
 		.on('miss', function (e) {
-			e.whiplinkElement.style.backgroundColor = 'red';
 			//console.log('miss', e);
 		})
 		.on('done', function (e) {
@@ -88,11 +87,9 @@ window.addEventListener('DOMContentLoaded', function () {
 		})
 		
 		.on('select', function (e) {
-			e.whiplinkElement.style.boxShadow = 'inset 0 0 0 3px rgb(59, 153, 252)';
 			//console.log('select', e);
 		})
 		.on('deselect', function (e) {
-			e.whiplinkElement.style.boxShadow = null;
 			//console.log('deselect', e);
 		})
 		.on('delete', function (e) {
