@@ -3,6 +3,31 @@
 <head>
 	<meta charset="UTF-8">
 	<title>WhipLinker</title>
+	<style>
+		/* draw an arrow as background */
+		table {
+			position: relative;
+		}
+		table:before,
+		table:after {
+			content: "";
+			width: 20px;
+			position: absolute;
+			top: 55%;
+			left: 50%;
+		}
+		table:before {
+			height: 20px;
+			background-color: rgba(0,0,0,.2);
+			margin-left: -20px;
+		}
+		table:after {
+			height: 0;
+			border: solid 20px transparent;
+			border-left-color: rgba(0,0,0,.2);
+			margin-top: -10px;
+		}
+	</style>
 </head>
 <body>
 
@@ -13,50 +38,66 @@
 		</td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" /></td>
-		<td><input type="radio" class="end" /></td>
+		<td><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /></td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" /></td>
-		<td><input type="radio" class="end" /></td>
+		<td><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /></td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" /></td>
-		<td><input type="radio" class="end" /></td>
+		<td><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /></td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" /></td>
-		<td><input type="radio" class="end" /></td>
+		<td><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /></td>
 	</tr>
 </table>
 
 <script src="dist/whiplinker.js"></script>
 <script>
-	var srcEl;
-	var wl = new WhipLinker('.start', document.getElementsByTagName('input'), {
+	var wl = new WhipLinker('.start', '.end', {
 		allowSource: function (sourceElement) {
 			// limit to only one connection per source
-			return ! sourceElement.classList.contains('linked');
+			return ! sourceElement.checked;
 		},
 		allowTarget: function (targetElement) {
 			// limit to only one connection per target
-			return ! targetElement.classList.contains('linked');
+			return ! targetElement.checked;
 		},
 	})
-		.on('from', function (sourceElement, whiplink) {
-			console.log('from', sourceElement);
+		.on('from', function (e) {
+			//console.log('from', e);
 		})
-		.on('to', function (x, y) {
-			console.log('to', x, y);
+		.on('to', function (e) {
+			//console.log('to', e);
 		})
-		.on('hit', function (targetElement, sourceElement, whiplink) {
-			targetElement.classList.add('linked');
-			sourceElement.classList.add('linked');
-			console.log('hit', targetElement);
+		.on('hit', function (e) {
+			e.sourceElement.checked = true;
+			e.targetElement.checked = true;
+			//console.log('hit', e);
 		})
-		.on('miss', function (sourceElement, whiplink) {
-			whiplink.style.backgroundColor = 'red';
-			console.log('miss');
+		.on('miss', function (e) {
+			e.whiplinkElement.style.backgroundColor = 'red';
+			//console.log('miss', e);
+		})
+		.on('done', function (e) {
+			//console.log('done', e);
+		})
+		
+		.on('select', function (e) {
+			e.whiplinkElement.style.boxShadow = 'inset 0 0 0 3px rgb(59, 153, 252)';
+			//console.log('select', e);
+		})
+		.on('deselect', function (e) {
+			e.whiplinkElement.style.boxShadow = null;
+			//console.log('deselect', e);
+		})
+		.on('delete', function (e) {
+			e.sourceElement.checked = false;
+			e.targetElement.checked = false;
+			//console.log('delete', e);
 		});
 </script>
 

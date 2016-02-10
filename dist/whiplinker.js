@@ -5,7 +5,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var WhipLinker = function () {
-	function WhipLinker(sourceElementsOrSelector, targetElementsOrSelector) {
+	function WhipLinker(source, target) {
 		var _this = this;
 
 		var options = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
@@ -18,13 +18,10 @@ var WhipLinker = function () {
 			container: document.body,
 			styles: {
 				whiplink: {
-					position: 'absolute',
 					height: '3px',
-					width: 0,
 					background: 'black',
 					marginTop: '-1.5px',
-					transformOrigin: 'left center',
-					pointerEvents: 'none'
+					borderRadius: '3px'
 				}
 			},
 			allowSource: function allowSource(sourceElement) {},
@@ -32,14 +29,16 @@ var WhipLinker = function () {
 		}, options);
 
 		// init
-		var _WhipLinker = this;
 		this.active = false;
+		this.selected = [];
+
 		this.sourceElements = [];
 		this.targetElements = [];
+		this.list = [];
 
 		// hooks
-		this.addSourceElements(typeof sourceElementsOrSelector === 'string' ? document.querySelectorAll(sourceElementsOrSelector) : sourceElementsOrSelector);
-		this.addTargetElements(typeof targetElementsOrSelector === 'string' ? document.querySelectorAll(targetElementsOrSelector) : targetElementsOrSelector);
+		this.addSourceElements(typeof source === 'string' ? document.querySelectorAll(source) : source);
+		this.addTargetElements(typeof target === 'string' ? document.querySelectorAll(target) : target);
 		document.addEventListener('mousemove', function (e) {
 			if (_this.active) {
 				_this._to(e.clientX, e.clientY);
@@ -48,6 +47,14 @@ var WhipLinker = function () {
 		document.addEventListener('mouseup', function (e) {
 			if (_this.active) {
 				_this._miss();
+			}
+		});
+		document.addEventListener('click', function (e) {
+			_this.deselectWhiplinks();
+		});
+		document.addEventListener('keyup', function (e) {
+			if (e.keyCode === 8 || e.keyCode === 46) {
+				_this.deleteWhiplinks();
 			}
 		});
 	}
@@ -118,13 +125,14 @@ var WhipLinker = function () {
 		}
 	}, {
 		key: 'addSourceElements',
-		value: function addSourceElements(els) {
+		value: function addSourceElements() {
+			var els = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 			var _iteratorNormalCompletion = true;
 			var _didIteratorError = false;
 			var _iteratorError = undefined;
 
 			try {
-				for (var _iterator = els[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+				for (var _iterator = Array.from(els)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
 					var el = _step.value;
 
 					this.addSourceElement(el);
@@ -146,13 +154,14 @@ var WhipLinker = function () {
 		}
 	}, {
 		key: 'addTargetElements',
-		value: function addTargetElements(els) {
+		value: function addTargetElements() {
+			var els = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
 			var _iteratorNormalCompletion2 = true;
 			var _didIteratorError2 = false;
 			var _iteratorError2 = undefined;
 
 			try {
-				for (var _iterator2 = els[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+				for (var _iterator2 = Array.from(els)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
 					var el = _step2.value;
 
 					this.addTargetElement(el);
@@ -171,6 +180,84 @@ var WhipLinker = function () {
 					}
 				}
 			}
+		}
+	}, {
+		key: 'find',
+		value: function find(whiplinkElement) {
+			return this.list.find(function (hit) {
+				return hit.whiplinkElement === whiplinkElement;
+			});
+		}
+
+		// selection
+
+	}, {
+		key: '_hookWhiplink',
+		value: function _hookWhiplink(el) {
+			var _this4 = this;
+
+			el.style.pointerEvents = 'auto';
+			el.addEventListener('click', function (e) {
+				_this4.selected.indexOf(el) >= 0 ? _this4.deselectWhiplink(el) : _this4.selectWhiplink(el, e.shiftKey);
+
+				e.stopPropagation();
+			});
+		}
+	}, {
+		key: 'selectWhiplink',
+		value: function selectWhiplink(el, append) {
+			var index = this.selected.indexOf(el);
+			if (index < 0) {
+				if (!append) this.deselectWhiplinks(this.selected);
+				this.selected.push(el);
+
+				var hit = this.find(el);
+				if (hit) this.emit('select', [hit]);
+			}
+		}
+	}, {
+		key: 'deselectWhiplink',
+		value: function deselectWhiplink(el) {
+			var index = this.selected.indexOf(el);
+			if (index >= 0) {
+				this.selected.splice(index, 1);
+
+				var hit = this.find(el);
+				if (hit) this.emit('deselect', [hit]);
+			}
+		}
+	}, {
+		key: 'deselectWhiplinks',
+		value: function deselectWhiplinks() {
+			var _this5 = this;
+
+			var els = arguments.length <= 0 || arguments[0] === undefined ? this.selected : arguments[0];
+
+			Array.from(els).forEach(function (el) {
+				_this5.deselectWhiplink(el);
+			});
+		}
+	}, {
+		key: 'deleteWhiplink',
+		value: function deleteWhiplink(el) {
+			this.deselectWhiplink(el); // make sure it doesn't linger in this.selected
+
+			var hit = this.find(el);
+			if (hit) {
+				el.parentNode.removeChild(el);
+				this.emit('delete', [hit]);
+			}
+		}
+	}, {
+		key: 'deleteWhiplinks',
+		value: function deleteWhiplinks() {
+			var _this6 = this;
+
+			var els = arguments.length <= 0 || arguments[0] === undefined ? this.selected : arguments[0];
+
+			Array.from(els).forEach(function (el) {
+				_this6.deleteWhiplink(el);
+			});
 		}
 
 		// drawing
@@ -195,7 +282,17 @@ var WhipLinker = function () {
 			for (var property in this.options.styles.whiplink) {
 				whiplink.style[property] = this.options.styles.whiplink[property];
 			}
+			var requiredStyles = {
+				position: 'absolute',
+				width: 0,
+				pointerEvents: 'none',
+				transformOrigin: 'left center'
+			};
+			for (var property in requiredStyles) {
+				whiplink.style[property] = requiredStyles[property];
+			}
 			this.options.container.appendChild(whiplink);
+
 			this.offset = this._snap(el, this.options.snap);
 			whiplink.style.left = this.offset.left + 'px';
 			whiplink.style.top = this.offset.top + 'px';
@@ -203,7 +300,7 @@ var WhipLinker = function () {
 
 			this.sourceElement = el;
 
-			this.emit('from', [el, this.active]);
+			this.emit('from', [{ sourceElement: el, whiplinkElement: this.active }]);
 		}
 	}, {
 		key: '_to',
@@ -220,7 +317,7 @@ var WhipLinker = function () {
 				this.active.style.width = length + 'px';
 				this.active.style.transform = 'rotate(' + angle + 'deg)';
 
-				this.emit('to', [x, y]);
+				this.emit('to', [{ x: x, y: y, sourceElement: this.sourceElement, whiplinkElement: this.active }]);
 			}
 		}
 	}, {
@@ -230,10 +327,18 @@ var WhipLinker = function () {
 				var offset = this._snap(el, this.options.snap);
 				this._to(offset.left, offset.top);
 
-				this.emit('hit', [el, this.sourceElement, this.active]);
+				this._hookWhiplink(this.active);
 
-				this.sourceElement = null;
-				this.active = false;
+				var hit = {
+					targetElement: el,
+					sourceElement: this.sourceElement,
+					whiplinkElement: this.active
+				};
+				this.list.push(hit);
+
+				this.emit('hit', [hit]);
+
+				this._done();
 			}
 		}
 	}, {
@@ -247,11 +352,18 @@ var WhipLinker = function () {
 					el.parentNode.removeChild(el);
 				}, 200);
 
-				this.emit('miss', [this.sourceElement, this.active]);
+				this.emit('miss', [{ sourceElement: this.sourceElement, whiplinkElement: this.active }]);
 
-				this.sourceElement = null;
-				this.active = false;
+				this._done();
 			}
+		}
+	}, {
+		key: '_done',
+		value: function _done() {
+			this.emit('done', [{ sourceElement: this.sourceElement, whiplinkElement: this.active }]);
+
+			this.sourceElement = null;
+			this.active = false;
 		}
 
 		// event delegation
@@ -270,12 +382,13 @@ var WhipLinker = function () {
 	}, {
 		key: 'emit',
 		value: function emit(eventType) {
+			var _this7 = this;
+
 			var args = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
 
-			var WhipLinker = this;
 			if (this.events && this.events[eventType]) {
 				this.events[eventType].forEach(function (callback) {
-					callback.apply(WhipLinker, args);
+					callback.apply(_this7, args);
 				});
 			}
 			return this;
