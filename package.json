@@ -1,6 +1,6 @@
 {
   "name": "whiplinker",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Connect items visually by drawing whips/links/cables/connectors between them",
   "main": "dist/whiplinker.js",
   "scripts": {
@@ -21,8 +21,8 @@
     "patches",
     "isadora",
     "pure data",
-	"dataflow",
-	"datastream"
+    "dataflow",
+    "datastream"
   ],
   "homepage": "https://mismith.github.io/whiplinker",
   "repository": {
