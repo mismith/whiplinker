@@ -57,6 +57,7 @@
 
 <script src="dist/whiplinker.js"></script>
 <script>
+window.addEventListener('DOMContentLoaded', function () {
 	var wl = new WhipLinker('.start', '.end', {
 		allowSource: function (sourceElement) {
 			// limit to only one connection per source
@@ -99,6 +100,7 @@
 			e.targetElement.checked = false;
 			//console.log('delete', e);
 		});
+});
 </script>
 
 </body>
