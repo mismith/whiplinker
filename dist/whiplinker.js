@@ -263,8 +263,8 @@ var WhipLinker = function () {
 		// drawing
 
 	}, {
-		key: '_snap',
-		value: function _snap(el) {
+		key: 'snap',
+		value: function snap(el) {
 			var snapTo = arguments.length <= 1 || arguments[1] === undefined ? 'center center' : arguments[1];
 
 			var offset = el.getBoundingClientRect();
@@ -275,8 +275,15 @@ var WhipLinker = function () {
 			};
 		}
 	}, {
+		key: '__from',
+		value: function __from(sourceElement, whipLinkElement) {
+			this._offset = this.snap(sourceElement, this.options.snap);
+			whipLinkElement.style.left = this._offset.left + 'px';
+			whipLinkElement.style.top = this._offset.top + 'px';
+		}
+	}, {
 		key: '_from',
-		value: function _from(el) {
+		value: function _from(sourceElement) {
 			var whiplink = document.createElement('div');
 			whiplink.className = this.options.prefix + 'whiplink';
 			for (var property in this.options.styles.whiplink) {
@@ -293,29 +300,32 @@ var WhipLinker = function () {
 			}
 			this.options.container.appendChild(whiplink);
 
-			this.offset = this._snap(el, this.options.snap);
-			whiplink.style.left = this.offset.left + 'px';
-			whiplink.style.top = this.offset.top + 'px';
+			this.__from(sourceElement, whiplink);
+
 			this.active = whiplink;
+			this.sourceElement = sourceElement;
 
-			this.sourceElement = el;
+			this.emit('from', [{ sourceElement: sourceElement, whiplinkElement: whiplink }]);
+		}
+	}, {
+		key: '__to',
+		value: function __to(whiplinkElement, x, y) {
+			x -= this._offset.left;
+			y -= this._offset.top;
 
-			this.emit('from', [{ sourceElement: el, whiplinkElement: this.active }]);
+			var length = Math.sqrt(x * x + y * y),
+			    angle = Math.atan(y / x) * // get theta
+			180 / Math.PI + ( // to degrees
+			x < 0 ? 180 : 0); // quadrants II & III
+
+			whiplinkElement.style.width = length + 'px';
+			whiplinkElement.style.transform = 'rotate(' + angle + 'deg)';
 		}
 	}, {
 		key: '_to',
 		value: function _to(x, y) {
 			if (this.active) {
-				x -= this.offset.left;
-				y -= this.offset.top;
-
-				var length = Math.sqrt(x * x + y * y),
-				    angle = Math.atan(y / x) * // get theta
-				180 / Math.PI + ( // to degrees
-				x < 0 ? 180 : 0); // quadrants II & III
-
-				this.active.style.width = length + 'px';
-				this.active.style.transform = 'rotate(' + angle + 'deg)';
+				this.__to(this.active, x, y);
 
 				this.emit('to', [{ x: x, y: y, sourceElement: this.sourceElement, whiplinkElement: this.active }]);
 			}
@@ -324,7 +334,7 @@ var WhipLinker = function () {
 		key: '_hit',
 		value: function _hit(el) {
 			if (this.active) {
-				var offset = this._snap(el, this.options.snap);
+				var offset = this.snap(el, this.options.snap);
 				this._to(offset.left, offset.top);
 
 				this._hookWhiplink(this.active);
@@ -365,6 +375,25 @@ var WhipLinker = function () {
 			this.sourceElement = null;
 			this.active = false;
 		}
+	}, {
+		key: 'repaint',
+		value: function repaint() {
+			var _this7 = this;
+
+			this.list.forEach(function (hit) {
+				// from
+				_this7.__from(hit.sourceElement, hit.whiplinkElement);
+
+				// to
+
+				var _snap = _this7.snap(hit.targetElement, _this7.options.snap);
+
+				var x = _snap.left;
+				var y = _snap.top;
+
+				_this7.__to(hit.whiplinkElement, x, y);
+			});
+		}
 
 		// event delegation
 
@@ -382,13 +411,13 @@ var WhipLinker = function () {
 	}, {
 		key: 'emit',
 		value: function emit(eventType) {
-			var _this7 = this;
+			var _this8 = this;
 
 			var args = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
 
 			if (this.events && this.events[eventType]) {
 				this.events[eventType].forEach(function (callback) {
-					callback.apply(_this7, args);
+					callback.apply(_this8, args);
 				});
 			}
 			return this;
