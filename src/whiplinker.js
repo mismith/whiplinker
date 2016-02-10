@@ -22,15 +22,15 @@ class WhipLinker {
 	margin-top: -1.5px;
 	border-radius: 3px;
 }
-.${this.options.prefix}missed {
+.${this.options.prefix}whiplink.${this.options.prefix}missed {
 	background: red;
 	width: 0 !important;
 	transition: width 200ms;
 }
-.${this.options.prefix}hit {
+.${this.options.prefix}whiplink.${this.options.prefix}hit {
 	pointer-events: auto;
 }
-.${this.options.prefix}selected {
+.${this.options.prefix}whiplink.${this.options.prefix}selected {
 	background: rgb(59, 153, 252);
 }`));
 		document.head.insertBefore(style, document.head.firstChild);

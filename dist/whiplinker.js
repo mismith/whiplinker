@@ -22,7 +22,7 @@ var WhipLinker = function () {
 		this.setOptions(options);
 
 		var style = document.createElement('style');
-		style.appendChild(document.createTextNode('\n.' + this.options.prefix + 'whiplink {\n\tposition: absolute;\n\twidth: 0;\n\tpointer-events: none;\n\ttransform-origin: left center;\n\n\theight: 3px;\n\tbackground: black;\n\tmargin-top: -1.5px;\n\tborder-radius: 3px;\n}\n.' + this.options.prefix + 'missed {\n\tbackground: red;\n\twidth: 0 !important;\n\ttransition: width 200ms;\n}\n.' + this.options.prefix + 'hit {\n\tpointer-events: auto;\n}\n.' + this.options.prefix + 'selected {\n\tbackground: rgb(59, 153, 252);\n}'));
+		style.appendChild(document.createTextNode('\n.' + this.options.prefix + 'whiplink {\n\tposition: absolute;\n\twidth: 0;\n\tpointer-events: none;\n\ttransform-origin: left center;\n\n\theight: 3px;\n\tbackground: black;\n\tmargin-top: -1.5px;\n\tborder-radius: 3px;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'missed {\n\tbackground: red;\n\twidth: 0 !important;\n\ttransition: width 200ms;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'hit {\n\tpointer-events: auto;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'selected {\n\tbackground: rgb(59, 153, 252);\n}'));
 		document.head.insertBefore(style, document.head.firstChild);
 
 		// init
