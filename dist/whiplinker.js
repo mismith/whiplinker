@@ -26,32 +26,37 @@ var WhipLinker = function () {
 		document.head.insertBefore(style, document.head.firstChild);
 
 		// init
-		this.active = false;
-		this.selected = [];
-
+		this.whiplinkElement = false;
+		this.selectedWhiplinkElements = [];
 		this.sourceElements = [];
 		this.targetElements = [];
-		this.list = [];
+		this.hits = [];
 
 		// hooks
-		this.addSourceElements(typeof source === 'string' ? document.querySelectorAll(source) : source);
-		this.addTargetElements(typeof target === 'string' ? document.querySelectorAll(target) : target);
+		this.hookSourceElements(source);
+		this.hookTargetElements(target);
 		document.addEventListener('mousemove', function (e) {
-			if (_this.active) {
+			if (_this.whiplinkElement) {
 				_this._to(e.clientX, e.clientY);
 			}
 		});
 		document.addEventListener('mouseup', function (e) {
-			if (_this.active) {
+			if (_this.whiplinkElement) {
 				_this._miss();
+
+				e.preventDefault();
 			}
 		});
 		document.addEventListener('click', function (e) {
 			_this.deselectWhiplinks();
+
+			e.preventDefault();
 		});
 		document.addEventListener('keyup', function (e) {
 			if (e.keyCode === 8 || e.keyCode === 46) {
-				_this.deleteWhiplinks();
+				_this.removeWhiplinks();
+
+				e.preventDefault();
 			}
 		});
 	}
@@ -64,8 +69,15 @@ var WhipLinker = function () {
 			return Object.assign(this.options, options);
 		}
 
-		// setup
+		// helpers
 
+	}, {
+		key: '_reverseForEach',
+		value: function _reverseForEach(array, iterator) {
+			for (var i = array.length - 1; i >= 0; i -= 1) {
+				iterator(array[i], i, array);
+			}
+		}
 	}, {
 		key: '_returnsTruthy',
 		value: function _returnsTruthy(fn, args) {
@@ -87,28 +99,31 @@ var WhipLinker = function () {
 				yes();
 			}
 		}
+
+		// elements
+
 	}, {
-		key: '_hookSourceElement',
-		value: function _hookSourceElement(el) {
+		key: 'hookSourceElement',
+		value: function hookSourceElement(sourceElement) {
 			var _this2 = this;
 
-			el.addEventListener('mousedown', function (e) {
-				_this2._returnsTruthy(_this2.options.allowSource, [{ sourceElement: el, whiplinkElement: _this2.active }], function () {
-					_this2._from(el);
+			sourceElement.addEventListener('mousedown', function (e) {
+				_this2._returnsTruthy(_this2.options.allowSource, [{ sourceElement: sourceElement, whiplinkElement: _this2.whiplinkElement }], function () {
+					_this2._from(sourceElement);
 
 					e.preventDefault();
 				});
 			});
 		}
 	}, {
-		key: '_hookTargetElement',
-		value: function _hookTargetElement(el) {
+		key: 'hookTargetElement',
+		value: function hookTargetElement(targetElement) {
 			var _this3 = this;
 
-			el.addEventListener('mouseup', function (e) {
-				if (_this3.active) {
-					_this3._returnsTruthy(_this3.options.allowTarget, [{ targetElement: el, sourceElement: _this3.sourceElement, whiplinkElement: _this3.active }], function () {
-						_this3._hit(el);
+			targetElement.addEventListener('mouseup', function (e) {
+				if (_this3.whiplinkElement) {
+					_this3._returnsTruthy(_this3.options.allowTarget, [{ targetElement: targetElement, sourceElement: _this3.sourceElement, whiplinkElement: _this3.whiplinkElement }], function () {
+						_this3._hit(targetElement);
 					}, function () {
 						_this3._miss();
 					});
@@ -116,30 +131,22 @@ var WhipLinker = function () {
 			});
 		}
 	}, {
-		key: 'addSourceElement',
-		value: function addSourceElement(el) {
-			this.sourceElements.push(el);
-			this._hookSourceElement(el);
-		}
-	}, {
-		key: 'addTargetElement',
-		value: function addTargetElement(el) {
-			this.targetElements.push(el);
-			this._hookTargetElement(el);
-		}
-	}, {
-		key: 'addSourceElements',
-		value: function addSourceElements() {
-			var els = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+		key: 'hookSourceElements',
+		value: function hookSourceElements() {
+			var sourceElements = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+			if (typeof sourceElements === 'string') {
+				sourceElements = document.querySelectorAll(sourceElements);
+			}
 			var _iteratorNormalCompletion = true;
 			var _didIteratorError = false;
 			var _iteratorError = undefined;
 
 			try {
-				for (var _iterator = Array.from(els)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-					var el = _step.value;
+				for (var _iterator = Array.from(sourceElements)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+					var sourceElement = _step.value;
 
-					this.addSourceElement(el);
+					this.hookSourceElement(sourceElement);
 				}
 			} catch (err) {
 				_didIteratorError = true;
@@ -157,18 +164,22 @@ var WhipLinker = function () {
 			}
 		}
 	}, {
-		key: 'addTargetElements',
-		value: function addTargetElements() {
-			var els = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+		key: 'hookTargetElements',
+		value: function hookTargetElements() {
+			var targetElements = arguments.length <= 0 || arguments[0] === undefined ? [] : arguments[0];
+
+			if (typeof targetElements === 'string') {
+				targetElements = document.querySelectorAll(targetElements);
+			}
 			var _iteratorNormalCompletion2 = true;
 			var _didIteratorError2 = false;
 			var _iteratorError2 = undefined;
 
 			try {
-				for (var _iterator2 = Array.from(els)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-					var el = _step2.value;
+				for (var _iterator2 = Array.from(targetElements)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+					var targetElement = _step2.value;
 
-					this.addTargetElement(el);
+					this.hookTargetElement(targetElement);
 				}
 			} catch (err) {
 				_didIteratorError2 = true;
@@ -185,52 +196,63 @@ var WhipLinker = function () {
 				}
 			}
 		}
-	}, {
-		key: 'find',
-		value: function find(whiplinkElement) {
-			return this.list.find(function (hit) {
-				return hit.whiplinkElement === whiplinkElement;
-			});
-		}
 
 		// selection
 
 	}, {
 		key: '_hookWhiplink',
-		value: function _hookWhiplink(el) {
+		value: function _hookWhiplink(whiplinkElement) {
 			var _this4 = this;
 
-			el.addEventListener('click', function (e) {
-				_this4.selected.indexOf(el) >= 0 ? _this4.deselectWhiplink(el) : _this4.selectWhiplink(el, e.shiftKey);
+			whiplinkElement.addEventListener('click', function (e) {
+				if (e.shiftKey) {
+					if (_this4.selectedWhiplinkElements.indexOf(whiplinkElement) >= 0) {
+						_this4.deselectWhiplink(whiplinkElement);
+					} else {
+						_this4.selectWhiplink(whiplinkElement, true);
+					}
+				} else {
+					_this4.selectWhiplink(whiplinkElement);
+				}
 
 				e.stopPropagation();
 			});
 		}
 	}, {
 		key: 'selectWhiplink',
-		value: function selectWhiplink(el, append) {
-			var index = this.selected.indexOf(el);
-			if (index < 0) {
-				if (!append) this.deselectWhiplinks(this.selected);
-				this.selected.push(el);
+		value: function selectWhiplink(whiplinkElement, append) {
+			// clear existing selection if not appending
+			if (!append) this.deselectWhiplinks();
 
-				var hit = this.find(el);
+			var index = this.selectedWhiplinkElements.indexOf(whiplinkElement);
+			if (index < 0) {
+				// add it
+				this.selectedWhiplinkElements.push(whiplinkElement);
+
+				// mark as selected
+				whiplinkElement.classList.add(this.options.prefix + 'selected');
+
+				// fire event
+				var hit = this.findHit(whiplinkElement);
 				if (hit) {
-					el.classList.add(this.options.prefix + 'selected');
 					this.emit('select', [hit]);
 				}
 			}
 		}
 	}, {
 		key: 'deselectWhiplink',
-		value: function deselectWhiplink(el) {
-			var index = this.selected.indexOf(el);
+		value: function deselectWhiplink(whiplinkElement) {
+			var index = this.selectedWhiplinkElements.indexOf(whiplinkElement);
 			if (index >= 0) {
-				this.selected.splice(index, 1);
+				// remove it
+				this.selectedWhiplinkElements.splice(index, 1);
 
-				var hit = this.find(el);
+				// unmark as selected
+				whiplinkElement.classList.remove(this.options.prefix + 'selected');
+
+				// fire event
+				var hit = this.findHit(whiplinkElement);
 				if (hit) {
-					el.classList.remove(this.options.prefix + 'selected');
 					this.emit('deselect', [hit]);
 				}
 			}
@@ -240,33 +262,65 @@ var WhipLinker = function () {
 		value: function deselectWhiplinks() {
 			var _this5 = this;
 
-			var els = arguments.length <= 0 || arguments[0] === undefined ? this.selected : arguments[0];
+			var whiplinkElements = arguments.length <= 0 || arguments[0] === undefined ? this.selectedWhiplinkElements : arguments[0];
 
-			Array.from(els).forEach(function (el) {
-				_this5.deselectWhiplink(el);
+			this._reverseForEach(whiplinkElements, function (whiplinkElement) {
+				_this5.deselectWhiplink(whiplinkElement);
 			});
 		}
 	}, {
-		key: 'deleteWhiplink',
-		value: function deleteWhiplink(el) {
-			this.deselectWhiplink(el); // make sure it doesn't linger in this.selected
+		key: 'removeWhiplink',
+		value: function removeWhiplink(whiplinkElement) {
+			// make sure it doesn't linger in selected
+			this.deselectWhiplink(whiplinkElement);
 
-			var hit = this.find(el);
+			// remove from DOM
+			this.options.container.removeChild(whiplinkElement);
+
+			// fire event
+			var hit = this.findHit(whiplinkElement);
 			if (hit) {
-				el.parentNode.removeChild(el);
 				this.emit('delete', [hit]);
 			}
 		}
 	}, {
-		key: 'deleteWhiplinks',
-		value: function deleteWhiplinks() {
+		key: 'removeWhiplinks',
+		value: function removeWhiplinks() {
 			var _this6 = this;
 
-			var els = arguments.length <= 0 || arguments[0] === undefined ? this.selected : arguments[0];
+			var whiplinkElements = arguments.length <= 0 || arguments[0] === undefined ? this.selectedWhiplinkElements : arguments[0];
 
-			Array.from(els).forEach(function (el) {
-				_this6.deleteWhiplink(el);
+			this._reverseForEach(whiplinkElements, function (whiplinkElement) {
+				_this6.removeWhiplink(whiplinkElement);
 			});
+		}
+
+		// storage
+
+	}, {
+		key: 'addHit',
+		value: function addHit(hit) {
+			this.hits.push(hit);
+
+			hit.whiplinkElement.classList.add(this.options.prefix + 'hit');
+
+			return hit;
+		}
+	}, {
+		key: 'findHit',
+		value: function findHit(whiplinkElement) {
+			return this.hits.find(function (hit) {
+				return hit.whiplinkElement === whiplinkElement;
+			});
+		}
+	}, {
+		key: 'deleteHit',
+		value: function deleteHit(hit) {
+			// make sure it doesn't linger in DOM
+			this.removeWhiplink(hit.whiplinkElement);
+
+			// remove from hits
+			this.hits.splice(this.hits.indexOf(hit), 1);
 		}
 
 		// drawing
@@ -284,29 +338,29 @@ var WhipLinker = function () {
 			};
 		}
 	}, {
-		key: '__from',
-		value: function __from(sourceElement, whipLinkElement) {
+		key: '__styleWhiplinkFrom',
+		value: function __styleWhiplinkFrom(whiplinkElement, sourceElement) {
 			this._offset = this.snap(sourceElement, this.options.snap);
-			whipLinkElement.style.left = this._offset.left + 'px';
-			whipLinkElement.style.top = this._offset.top + 'px';
+			whiplinkElement.style.left = this._offset.left + 'px';
+			whiplinkElement.style.top = this._offset.top + 'px';
 		}
 	}, {
 		key: '_from',
 		value: function _from(sourceElement) {
-			var whiplink = document.createElement('div');
-			whiplink.className = this.options.prefix + 'whiplink';
-			this.options.container.appendChild(whiplink);
+			var whiplinkElement = document.createElement('div');
+			whiplinkElement.className = this.options.prefix + 'whiplink';
+			this.options.container.appendChild(whiplinkElement);
 
-			this.__from(sourceElement, whiplink);
+			this.__styleWhiplinkFrom(whiplinkElement, sourceElement);
 
-			this.active = whiplink;
+			this.whiplinkElement = whiplinkElement;
 			this.sourceElement = sourceElement;
 
-			this.emit('from', [{ sourceElement: sourceElement, whiplinkElement: whiplink }]);
+			this.emit('from', [{ sourceElement: sourceElement, whiplinkElement: whiplinkElement }]);
 		}
 	}, {
-		key: '__to',
-		value: function __to(whiplinkElement, x, y) {
+		key: '__styleWhiplinkTo',
+		value: function __styleWhiplinkTo(whiplinkElement, x, y) {
 			x -= this._offset.left;
 			y -= this._offset.top;
 
@@ -321,28 +375,26 @@ var WhipLinker = function () {
 	}, {
 		key: '_to',
 		value: function _to(x, y) {
-			if (this.active) {
-				this.__to(this.active, x, y);
+			if (this.whiplinkElement) {
+				this.__styleWhiplinkTo(this.whiplinkElement, x, y);
 
-				this.emit('to', [{ x: x, y: y, sourceElement: this.sourceElement, whiplinkElement: this.active }]);
+				this.emit('to', [{ x: x, y: y, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement }]);
 			}
 		}
 	}, {
 		key: '_hit',
-		value: function _hit(el) {
-			if (this.active) {
-				var offset = this.snap(el, this.options.snap);
+		value: function _hit(targetElement) {
+			if (this.whiplinkElement) {
+				var offset = this.snap(targetElement, this.options.snap);
 				this._to(offset.left, offset.top);
 
-				this._hookWhiplink(this.active);
+				this._hookWhiplink(this.whiplinkElement);
 
-				var hit = {
-					targetElement: el,
+				var hit = this.addHit({
+					targetElement: targetElement,
 					sourceElement: this.sourceElement,
-					whiplinkElement: this.active
-				};
-				this.list.push(hit);
-				this.active.classList.add(this.options.prefix + 'hit');
+					whiplinkElement: this.whiplinkElement
+				});
 
 				this.emit('hit', [hit]);
 
@@ -352,14 +404,16 @@ var WhipLinker = function () {
 	}, {
 		key: '_miss',
 		value: function _miss() {
-			if (this.active) {
-				this.active.classList.add(this.options.prefix + 'missed');
-				var el = this.active;
+			var _this7 = this;
+
+			if (this.whiplinkElement) {
+				this.whiplinkElement.classList.add(this.options.prefix + 'missed');
+				var whiplinkElement = this.whiplinkElement;
 				setTimeout(function () {
-					el.parentNode.removeChild(el);
+					_this7.removeWhiplink(whiplinkElement);
 				}, 200);
 
-				this.emit('miss', [{ sourceElement: this.sourceElement, whiplinkElement: this.active }]);
+				this.emit('miss', [{ sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement }]);
 
 				this._done();
 			}
@@ -367,28 +421,33 @@ var WhipLinker = function () {
 	}, {
 		key: '_done',
 		value: function _done() {
-			this.emit('done', [{ sourceElement: this.sourceElement, whiplinkElement: this.active }]);
+			this.emit('done', [{ sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement }]);
 
 			this.sourceElement = null;
-			this.active = false;
+			this.whiplinkElement = false;
 		}
 	}, {
 		key: 'repaint',
 		value: function repaint() {
-			var _this7 = this;
+			var _this8 = this;
 
-			this.list.forEach(function (hit) {
+			this._reverseForEach(this.hits, function (hit, i) {
+				// auto-delete if either source or target is missing
+				if (!_this8.options.container.contains(hit.sourceElement) || !_this8.options.container.contains(hit.targetElement)) {
+					return _this8.deleteHit(hit);
+				}
+
 				// from
-				_this7.__from(hit.sourceElement, hit.whiplinkElement);
+				_this8.__styleWhiplinkFrom(hit.whiplinkElement, hit.sourceElement);
 
 				// to
 
-				var _snap = _this7.snap(hit.targetElement, _this7.options.snap);
+				var _snap = _this8.snap(hit.targetElement, _this8.options.snap);
 
 				var x = _snap.left;
 				var y = _snap.top;
 
-				_this7.__to(hit.whiplinkElement, x, y);
+				_this8.__styleWhiplinkTo(hit.whiplinkElement, x, y);
 			});
 		}
 
@@ -408,13 +467,13 @@ var WhipLinker = function () {
 	}, {
 		key: 'emit',
 		value: function emit(eventType) {
-			var _this8 = this;
+			var _this9 = this;
 
 			var args = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
 
 			if (this.events && this.events[eventType]) {
 				this.events[eventType].forEach(function (callback) {
-					callback.apply(_this8, args);
+					callback.apply(_this9, args);
 				});
 			}
 			return this;

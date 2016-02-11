@@ -36,32 +36,37 @@ class WhipLinker {
 		document.head.insertBefore(style, document.head.firstChild);
 		
 		// init
-		this.active = false;
-		this.selected = [];
-		
+		this.whiplinkElement = false;
+		this.selectedWhiplinkElements = [];
 		this.sourceElements = [];
 		this.targetElements = [];
-		this.list = [];
+		this.hits = [];
 		
 		// hooks
-		this.addSourceElements(typeof source === 'string' ? document.querySelectorAll(source) : source);
-		this.addTargetElements(typeof target === 'string' ? document.querySelectorAll(target) : target);
+		this.hookSourceElements(source);
+		this.hookTargetElements(target);
 		document.addEventListener('mousemove', e => {
-			if (this.active) {
+			if (this.whiplinkElement) {
 				this._to(e.clientX, e.clientY);
 			}
 		});
 		document.addEventListener('mouseup', e => {
-			if (this.active) {
+			if (this.whiplinkElement) {
 				this._miss();
+				
+				e.preventDefault();
 			}
 		});
 		document.addEventListener('click', e => {
 			this.deselectWhiplinks();
+			
+			e.preventDefault();
 		});
 		document.addEventListener('keyup', e => {
 			if (e.keyCode === 8 || e.keyCode === 46) {
-				this.deleteWhiplinks();
+				this.removeWhiplinks();
+				
+				e.preventDefault();
 			}
 		});
 	}
@@ -69,7 +74,12 @@ class WhipLinker {
 		return Object.assign(this.options, options);
 	}
 	
-	// setup
+	// helpers
+	_reverseForEach(array, iterator) {
+		for (var i = array.length - 1; i >= 0; i -= 1) {
+			iterator(array[i], i, array);
+		}
+	}
 	_returnsTruthy(fn, args, yes = ()=>{}, no = ()=>{}) {
 		if (typeof fn === 'function') {
 			var returnValue = fn.apply(this, args);
@@ -86,101 +96,139 @@ class WhipLinker {
 			yes();
 		}
 	}
-	_hookSourceElement(el) {
-		el.addEventListener('mousedown', e => {
-			this._returnsTruthy(this.options.allowSource, [{sourceElement: el, whiplinkElement: this.active}], () => {
-				this._from(el);
+	
+	// elements
+	hookSourceElement(sourceElement) {
+		sourceElement.addEventListener('mousedown', e => {
+			this._returnsTruthy(this.options.allowSource, [{sourceElement, whiplinkElement: this.whiplinkElement}], () => {
+				this._from(sourceElement);
 				
 				e.preventDefault();
 			})
 		});
 	}
-	_hookTargetElement(el) {
-		el.addEventListener('mouseup', e => {
-			if (this.active) {
-				this._returnsTruthy(this.options.allowTarget, [{targetElement: el, sourceElement: this.sourceElement, whiplinkElement: this.active}], () => {
-					this._hit(el);
+	hookTargetElement(targetElement) {
+		targetElement.addEventListener('mouseup', e => {
+			if (this.whiplinkElement) {
+				this._returnsTruthy(this.options.allowTarget, [{targetElement, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}], () => {
+					this._hit(targetElement);
 				}, () => {
 					this._miss();
 				});
 			}
 		});
 	}
-	addSourceElement(el) {
-		this.sourceElements.push(el);
-		this._hookSourceElement(el);
-	}
-	addTargetElement(el) {
-		this.targetElements.push(el);
-		this._hookTargetElement(el);
-	}
-	addSourceElements(els = []) {
-		for (var el of Array.from(els)) {
-			this.addSourceElement(el);
+	hookSourceElements(sourceElements = []) {
+		if (typeof sourceElements === 'string') {
+			sourceElements = document.querySelectorAll(sourceElements);
+		}
+		for (var sourceElement of Array.from(sourceElements)) {
+			this.hookSourceElement(sourceElement);
 		}
 	}
-	addTargetElements(els = []) {
-		for (var el of Array.from(els)) {
-			this.addTargetElement(el);
+	hookTargetElements(targetElements = []) {
+		if (typeof targetElements === 'string') {
+			targetElements = document.querySelectorAll(targetElements);
 		}
-	}
-	find(whiplinkElement) {
-		return this.list.find(hit => {
-			return hit.whiplinkElement === whiplinkElement;
-		});
+		for (var targetElement of Array.from(targetElements)) {
+			this.hookTargetElement(targetElement);
+		}
 	}
 	
 	// selection
-	_hookWhiplink(el) {
-		el.addEventListener('click', e => {
-			this.selected.indexOf(el) >= 0 ? this.deselectWhiplink(el) : this.selectWhiplink(el, e.shiftKey);
+	_hookWhiplink(whiplinkElement) {
+		whiplinkElement.addEventListener('click', e => {
+			if (e.shiftKey) {
+				if (this.selectedWhiplinkElements.indexOf(whiplinkElement) >= 0) {
+					this.deselectWhiplink(whiplinkElement);
+				} else {
+					this.selectWhiplink(whiplinkElement, true);
+				}
+			} else {
+				this.selectWhiplink(whiplinkElement);
+			}
 			
 			e.stopPropagation();
 		});
 	}
-	selectWhiplink(el, append) {
-		var index = this.selected.indexOf(el);
+	selectWhiplink(whiplinkElement, append) {
+		// clear existing selection if not appending
+		if ( ! append) this.deselectWhiplinks();
+		
+		var index = this.selectedWhiplinkElements.indexOf(whiplinkElement);
 		if (index < 0) {
-			if ( ! append) this.deselectWhiplinks(this.selected);
-			this.selected.push(el);
+			// add it
+			this.selectedWhiplinkElements.push(whiplinkElement);
 			
-			var hit = this.find(el);
+			// mark as selected
+			whiplinkElement.classList.add(this.options.prefix + 'selected');
+			
+			// fire event
+			var hit = this.findHit(whiplinkElement);
 			if (hit) {
-				el.classList.add(this.options.prefix + 'selected');
 				this.emit('select', [hit]);
 			}
 		}
 	}
-	deselectWhiplink(el) {
-		var index = this.selected.indexOf(el);
+	deselectWhiplink(whiplinkElement) {
+		var index = this.selectedWhiplinkElements.indexOf(whiplinkElement);
 		if (index >= 0) {
-			this.selected.splice(index, 1);
+			// remove it
+			this.selectedWhiplinkElements.splice(index, 1);
 			
-			var hit = this.find(el);
+			// unmark as selected
+			whiplinkElement.classList.remove(this.options.prefix + 'selected');
+			
+			// fire event
+			var hit = this.findHit(whiplinkElement);
 			if (hit) {
-				el.classList.remove(this.options.prefix + 'selected');
 				this.emit('deselect', [hit]);
 			}
 		}
 	}
-	deselectWhiplinks(els = this.selected) {
-		Array.from(els).forEach(el => {
-			this.deselectWhiplink(el);
+	deselectWhiplinks(whiplinkElements = this.selectedWhiplinkElements) {
+		this._reverseForEach(whiplinkElements, whiplinkElement => {
+			this.deselectWhiplink(whiplinkElement);
 		});
 	}
-	deleteWhiplink(el) {
-		this.deselectWhiplink(el); // make sure it doesn't linger in this.selected
+	removeWhiplink(whiplinkElement) {
+		// make sure it doesn't linger in selected
+		this.deselectWhiplink(whiplinkElement);
 		
-		var hit = this.find(el);
+		// remove from DOM
+		this.options.container.removeChild(whiplinkElement);
+		
+		// fire event
+		var hit = this.findHit(whiplinkElement);
 		if (hit) {
-			el.parentNode.removeChild(el);
 			this.emit('delete', [hit]);
 		}
 	}
-	deleteWhiplinks(els = this.selected) {
-		Array.from(els).forEach(el => {
-			this.deleteWhiplink(el);
+	removeWhiplinks(whiplinkElements = this.selectedWhiplinkElements) {
+		this._reverseForEach(whiplinkElements, whiplinkElement => {
+			this.removeWhiplink(whiplinkElement);
 		});
+	}
+	
+	// storage
+	addHit(hit) {
+		this.hits.push(hit);
+		
+		hit.whiplinkElement.classList.add(this.options.prefix + 'hit');
+		
+		return hit;
+	}
+	findHit(whiplinkElement) {
+		return this.hits.find(hit => {
+			return hit.whiplinkElement === whiplinkElement;
+		});
+	}
+	deleteHit(hit) {
+		// make sure it doesn't linger in DOM
+		this.removeWhiplink(hit.whiplinkElement);
+		
+		// remove from hits
+		this.hits.splice(this.hits.indexOf(hit), 1);
 	}
 	
 	// drawing
@@ -192,24 +240,24 @@ class WhipLinker {
 			top:  offset.top  + (/top/.test(snapTo)  ? 0 : (/bottom/.test(snapTo) ? offset.height : offset.height / 2)),
 		};
 	}
-	__from(sourceElement, whipLinkElement) {
+	__styleWhiplinkFrom(whiplinkElement, sourceElement) {
 		this._offset = this.snap(sourceElement, this.options.snap);
-		whipLinkElement.style.left = this._offset.left + 'px';
-		whipLinkElement.style.top  = this._offset.top + 'px';
+		whiplinkElement.style.left = this._offset.left + 'px';
+		whiplinkElement.style.top  = this._offset.top + 'px';
 	}
 	_from(sourceElement) {
-		var whiplink = document.createElement('div');
-		whiplink.className = this.options.prefix + 'whiplink';
-		this.options.container.appendChild(whiplink);
+		var whiplinkElement = document.createElement('div');
+		whiplinkElement.className = this.options.prefix + 'whiplink';
+		this.options.container.appendChild(whiplinkElement);
 		
-		this.__from(sourceElement, whiplink);
+		this.__styleWhiplinkFrom(whiplinkElement, sourceElement);
 		
-		this.active = whiplink;
+		this.whiplinkElement = whiplinkElement;
 		this.sourceElement = sourceElement;
 		
-		this.emit('from', [{sourceElement, whiplinkElement: whiplink}]);
+		this.emit('from', [{sourceElement, whiplinkElement: whiplinkElement}]);
 	}
-	__to(whiplinkElement, x, y) {
+	__styleWhiplinkTo(whiplinkElement, x, y) {
 		x -= this._offset.left;
 		y -= this._offset.top;
 		
@@ -222,26 +270,24 @@ class WhipLinker {
 		whiplinkElement.style.transform = 'rotate(' + angle + 'deg)';
 	}
 	_to(x, y) {
-		if (this.active) {
-			this.__to(this.active, x, y);
+		if (this.whiplinkElement) {
+			this.__styleWhiplinkTo(this.whiplinkElement, x, y);
 			
-			this.emit('to', [{x, y, sourceElement: this.sourceElement, whiplinkElement: this.active}]);
+			this.emit('to', [{x, y, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}]);
 		}
 	}
-	_hit(el) {
-		if (this.active) {
-			var offset = this.snap(el, this.options.snap);
+	_hit(targetElement) {
+		if (this.whiplinkElement) {
+			var offset = this.snap(targetElement, this.options.snap);
 			this._to(offset.left, offset.top);
 			
-			this._hookWhiplink(this.active);
+			this._hookWhiplink(this.whiplinkElement);
 			
-			var hit = {
-				targetElement:   el,
+			var hit = this.addHit({
+				targetElement,
 				sourceElement:   this.sourceElement,
-				whiplinkElement: this.active,
-			};
-			this.list.push(hit);
-			this.active.classList.add(this.options.prefix + 'hit');
+				whiplinkElement: this.whiplinkElement,
+			});
 			
 			this.emit('hit', [hit]);
 			
@@ -249,32 +295,37 @@ class WhipLinker {
 		}
 	}
 	_miss() {
-		if (this.active) {
-			this.active.classList.add(this.options.prefix + 'missed');
-			var el = this.active;
+		if (this.whiplinkElement) {
+			this.whiplinkElement.classList.add(this.options.prefix + 'missed');
+			var whiplinkElement = this.whiplinkElement;
 			setTimeout(() => {
-				el.parentNode.removeChild(el);
+				this.removeWhiplink(whiplinkElement);
 			}, 200);
 			
-			this.emit('miss', [{sourceElement: this.sourceElement, whiplinkElement: this.active}]);
+			this.emit('miss', [{sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}]);
 			
 			this._done();
 		}
 	}
 	_done() {
-		this.emit('done', [{sourceElement: this.sourceElement, whiplinkElement: this.active}]);
+		this.emit('done', [{sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}]);
 		
 		this.sourceElement = null;
-		this.active = false;
+		this.whiplinkElement = false;
 	}
 	repaint() {
-		this.list.forEach(hit => {
+		this._reverseForEach(this.hits, (hit, i) => {
+			// auto-delete if either source or target is missing
+			if ( ! this.options.container.contains(hit.sourceElement) || ! this.options.container.contains(hit.targetElement)) {
+				return this.deleteHit(hit);
+			}
+			
 			// from
-			this.__from(hit.sourceElement, hit.whiplinkElement);
+			this.__styleWhiplinkFrom(hit.whiplinkElement, hit.sourceElement);
 			
 			// to
 			let {left: x, top: y} = this.snap(hit.targetElement, this.options.snap);
-			this.__to(hit.whiplinkElement, x, y);
+			this.__styleWhiplinkTo(hit.whiplinkElement, x, y);
 		});
 	}
 	
