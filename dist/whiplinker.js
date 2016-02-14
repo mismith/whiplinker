@@ -15,14 +15,13 @@ var WhipLinker = function () {
 		// defaults
 		this.options = {
 			prefix: 'wl-',
-			container: document.body,
-			allowSource: function allowSource(sourceElement) {},
-			allowTarget: function allowTarget(targetElement) {}
+			container: document.body
 		};
 		this.setOptions(options);
 
+		// styling
 		var style = document.createElement('style');
-		style.appendChild(document.createTextNode('\n.' + this.options.prefix + 'whiplink {\n\tposition: absolute;\n\twidth: 0;\n\tpointer-events: none;\n\ttransform-origin: left center;\n\n\theight: 3px;\n\tbackground: black;\n\tmargin-top: -1.5px;\n\tborder-radius: 3px;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'missed {\n\tbackground: red;\n\twidth: 0 !important;\n\ttransition: width 200ms;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'hit {\n\tpointer-events: auto;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'selected {\n\tbackground: rgb(59, 153, 252);\n}'));
+		style.appendChild(document.createTextNode('\n.' + this.options.prefix + 'source {}\n.' + this.options.prefix + 'target {}\n.' + this.options.prefix + 'whiplink {\n\tposition: absolute;\n\twidth: 0;\n\tpointer-events: none;\n\ttransform-origin: left center;\n\n\theight: 3px;\n\tbackground: black;\n\tmargin-top: -1.5px;\n\tborder-radius: 3px;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'missed {\n\tbackground: red;\n\twidth: 0 !important;\n\ttransition: width 200ms;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'hit {\n\tpointer-events: auto;\n}\n.' + this.options.prefix + 'whiplink.' + this.options.prefix + 'selected {\n\tbackground: rgb(59, 153, 252);\n}'));
 		document.head.insertBefore(style, document.head.firstChild);
 
 		// init
@@ -30,19 +29,34 @@ var WhipLinker = function () {
 		this.selectedWhiplinkElements = [];
 		this.sourceElements = [];
 		this.targetElements = [];
+		this.sourceFilters = [];
+		this.targetFilters = [];
 		this.hits = [];
 
 		// hooks
 		this.hookSourceElements(source);
 		this.hookTargetElements(target);
+		document.addEventListener('mousedown', function (e) {
+			if (_this.sourceElements.indexOf(e.target) >= 0 && _this.filterSourceElement(e.target)) {
+				_this._from(e.target);
+
+				e.preventDefault();
+			}
+		});
 		document.addEventListener('mousemove', function (e) {
 			if (_this.whiplinkElement) {
 				_this._to(e.clientX, e.clientY);
+
+				e.preventDefault();
 			}
 		});
 		document.addEventListener('mouseup', function (e) {
 			if (_this.whiplinkElement) {
-				_this._miss();
+				if (_this.targetElements.indexOf(e.target) >= 0 && _this.filterTargetElement(e.target)) {
+					_this._hit(e.target);
+				} else {
+					_this._miss();
+				}
 
 				e.preventDefault();
 			}
@@ -53,13 +67,16 @@ var WhipLinker = function () {
 			e.preventDefault();
 		});
 		document.addEventListener('keyup', function (e) {
-			if (e.keyCode === 8 || e.keyCode === 46) {
-				_this.removeWhiplinks();
+			if (e.keyCode === 46 /*del*/) {
+					_this.removeWhiplinks();
 
-				e.preventDefault();
-			}
+					e.preventDefault();
+				}
 		});
 	}
+
+	// helpers
+
 
 	_createClass(WhipLinker, [{
 		key: 'setOptions',
@@ -68,35 +85,11 @@ var WhipLinker = function () {
 
 			return Object.assign(this.options, options);
 		}
-
-		// helpers
-
 	}, {
 		key: '_reverseForEach',
 		value: function _reverseForEach(array, iterator) {
 			for (var i = array.length - 1; i >= 0; i -= 1) {
 				iterator(array[i], i, array);
-			}
-		}
-	}, {
-		key: '_returnsTruthy',
-		value: function _returnsTruthy(fn, args) {
-			var yes = arguments.length <= 2 || arguments[2] === undefined ? function () {} : arguments[2];
-			var no = arguments.length <= 3 || arguments[3] === undefined ? function () {} : arguments[3];
-
-			if (typeof fn === 'function') {
-				var returnValue = fn.apply(this, args);
-				if (returnValue !== undefined) {
-					if (!returnValue) {
-						no();
-					} else {
-						yes();
-					}
-				} else {
-					yes();
-				}
-			} else {
-				yes();
 			}
 		}
 
@@ -105,30 +98,16 @@ var WhipLinker = function () {
 	}, {
 		key: 'hookSourceElement',
 		value: function hookSourceElement(sourceElement) {
-			var _this2 = this;
+			sourceElement.classList.add(this.options.prefix + 'source');
 
-			sourceElement.addEventListener('mousedown', function (e) {
-				_this2._returnsTruthy(_this2.options.allowSource, [{ sourceElement: sourceElement, whiplinkElement: _this2.whiplinkElement }], function () {
-					_this2._from(sourceElement);
-
-					e.preventDefault();
-				});
-			});
+			this.sourceElements.push(sourceElement);
 		}
 	}, {
 		key: 'hookTargetElement',
 		value: function hookTargetElement(targetElement) {
-			var _this3 = this;
+			targetElement.classList.add(this.options.prefix + 'target');
 
-			targetElement.addEventListener('mouseup', function (e) {
-				if (_this3.whiplinkElement) {
-					_this3._returnsTruthy(_this3.options.allowTarget, [{ targetElement: targetElement, sourceElement: _this3.sourceElement, whiplinkElement: _this3.whiplinkElement }], function () {
-						_this3._hit(targetElement);
-					}, function () {
-						_this3._miss();
-					});
-				}
-			});
+			this.targetElements.push(targetElement);
 		}
 	}, {
 		key: 'hookSourceElements',
@@ -195,6 +174,38 @@ var WhipLinker = function () {
 					}
 				}
 			}
+		}
+	}, {
+		key: 'filterSourceElement',
+		value: function filterSourceElement(sourceElement) {
+			var _this2 = this;
+
+			return this.sourceFilters.reduce(function (prev, filter) {
+				return prev && filter.call(_this2, { sourceElement: sourceElement, whiplinkElement: _this2.whiplinkElement });
+			}, true);
+		}
+	}, {
+		key: 'filterTargetElement',
+		value: function filterTargetElement(targetElement) {
+			var _this3 = this;
+
+			return this.targetFilters.reduce(function (prev, filter) {
+				return prev && filter.call(_this3, { sourceElement: _this3.sourceElement, whiplinkElement: _this3.whiplinkElement, targetElement: targetElement });
+			}, true);
+		}
+	}, {
+		key: 'addSourceFilter',
+		value: function addSourceFilter(filter) {
+			if (typeof filter === 'function') this.sourceFilters.push(filter);
+
+			return this; // chainable
+		}
+	}, {
+		key: 'addTargetFilter',
+		value: function addTargetFilter(filter) {
+			if (typeof filter === 'function') this.targetFilters.push(filter);
+
+			return this; // chainable
 		}
 
 		// selection
@@ -462,7 +473,7 @@ var WhipLinker = function () {
 			this.events[eventType] = this.events[eventType] || [];
 			this.events[eventType].push(callback);
 
-			return this;
+			return this; // chainable
 		}
 	}, {
 		key: 'emit',
@@ -476,7 +487,7 @@ var WhipLinker = function () {
 					callback.apply(_this9, args);
 				});
 			}
-			return this;
+			return this; // chainable
 		}
 	}]);
 

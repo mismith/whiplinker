@@ -4,13 +4,14 @@ class WhipLinker {
 		this.options = {
 			prefix: 'wl-',
 			container: document.body,
-			allowSource: function (sourceElement) {},
-			allowTarget: function (targetElement) {},
 		};
 		this.setOptions(options);
 		
+		// styling
 		var style = document.createElement('style');
 		style.appendChild(document.createTextNode(`
+.${this.options.prefix}source {}
+.${this.options.prefix}target {}
 .${this.options.prefix}whiplink {
 	position: absolute;
 	width: 0;
@@ -40,19 +41,34 @@ class WhipLinker {
 		this.selectedWhiplinkElements = [];
 		this.sourceElements = [];
 		this.targetElements = [];
+		this.sourceFilters = [];
+		this.targetFilters = [];
 		this.hits = [];
 		
 		// hooks
 		this.hookSourceElements(source);
 		this.hookTargetElements(target);
+		document.addEventListener('mousedown', e => {
+			if (this.sourceElements.indexOf(e.target) >= 0 && this.filterSourceElement(e.target)) {
+				 this._from(e.target);
+				
+				e.preventDefault();
+			}
+		});
 		document.addEventListener('mousemove', e => {
 			if (this.whiplinkElement) {
 				this._to(e.clientX, e.clientY);
+				
+				e.preventDefault();
 			}
 		});
 		document.addEventListener('mouseup', e => {
 			if (this.whiplinkElement) {
-				this._miss();
+				if (this.targetElements.indexOf(e.target) >= 0 && this.filterTargetElement(e.target)) {
+					this._hit(e.target);
+				} else {
+					this._miss();
+				}
 				
 				e.preventDefault();
 			}
@@ -63,60 +79,34 @@ class WhipLinker {
 			e.preventDefault();
 		});
 		document.addEventListener('keyup', e => {
-			if (e.keyCode === 8 || e.keyCode === 46) {
+			if (e.keyCode === 46 /*del*/) {
 				this.removeWhiplinks();
 				
 				e.preventDefault();
 			}
 		});
 	}
+	
+	// helpers
 	setOptions(options = {}) {
 		return Object.assign(this.options, options);
 	}
-	
-	// helpers
 	_reverseForEach(array, iterator) {
 		for (var i = array.length - 1; i >= 0; i -= 1) {
 			iterator(array[i], i, array);
 		}
 	}
-	_returnsTruthy(fn, args, yes = ()=>{}, no = ()=>{}) {
-		if (typeof fn === 'function') {
-			var returnValue = fn.apply(this, args);
-			if (returnValue !== undefined) {
-				if ( ! returnValue) {
-					no();
-				} else {
-					yes();
-				}
-			} else {
-				yes();
-			}
-		} else {
-			yes();
-		}
-	}
 	
 	// elements
 	hookSourceElement(sourceElement) {
-		sourceElement.addEventListener('mousedown', e => {
-			this._returnsTruthy(this.options.allowSource, [{sourceElement, whiplinkElement: this.whiplinkElement}], () => {
-				this._from(sourceElement);
-				
-				e.preventDefault();
-			})
-		});
+		sourceElement.classList.add(this.options.prefix + 'source');
+		
+		this.sourceElements.push(sourceElement);
 	}
 	hookTargetElement(targetElement) {
-		targetElement.addEventListener('mouseup', e => {
-			if (this.whiplinkElement) {
-				this._returnsTruthy(this.options.allowTarget, [{targetElement, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}], () => {
-					this._hit(targetElement);
-				}, () => {
-					this._miss();
-				});
-			}
-		});
+		targetElement.classList.add(this.options.prefix + 'target');
+		
+		this.targetElements.push(targetElement);
 	}
 	hookSourceElements(sourceElements = []) {
 		if (typeof sourceElements === 'string') {
@@ -133,6 +123,26 @@ class WhipLinker {
 		for (var targetElement of Array.from(targetElements)) {
 			this.hookTargetElement(targetElement);
 		}
+	}
+	filterSourceElement(sourceElement) {
+		return this.sourceFilters.reduce((prev, filter) => {
+			return prev && filter.call(this, {sourceElement, whiplinkElement: this.whiplinkElement});
+		}, true);
+	}
+	filterTargetElement(targetElement) {
+		return this.targetFilters.reduce((prev, filter) => {
+			return prev && filter.call(this, {sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement, targetElement});
+		}, true);
+	}
+	addSourceFilter(filter) {
+		if (typeof filter === 'function') this.sourceFilters.push(filter);
+		
+		return this; // chainable
+	}
+	addTargetFilter(filter) {
+		if (typeof filter === 'function') this.targetFilters.push(filter);
+		
+		return this; // chainable
 	}
 	
 	// selection
@@ -337,7 +347,7 @@ class WhipLinker {
 		this.events[eventType] = this.events[eventType] || [];
 		this.events[eventType].push(callback);
 		
-		return this;
+		return this; // chainable
 	}
 	emit(eventType, args = []) {
 		if (this.events && this.events[eventType]) {
@@ -345,6 +355,6 @@ class WhipLinker {
 				callback.apply(this, args);
 			});
 		}
-		return this;
+		return this; // chainable
 	}
 }

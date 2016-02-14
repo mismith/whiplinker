@@ -58,16 +58,18 @@
 <script src="dist/whiplinker.js"></script>
 <script>
 window.addEventListener('DOMContentLoaded', function () {
-	var wl = new WhipLinker('.start', '.end', {
-		allowSource: function (e) {
+	new WhipLinker('.start', '.end')
+		// filters
+		.addSourceFilter(function (e) {
 			// limit to only one connection per source
 			return ! e.sourceElement.checked;
-		},
-		allowTarget: function (e) {
+		})
+		.addTargetFilter(function (e) {
 			// limit to only one connection per target
 			return ! e.targetElement.checked;
-		},
-	})
+		})
+		
+		// events
 		.on('from', function (e) {
 			//console.log('from', e);
 		})
