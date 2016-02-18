@@ -50,15 +50,15 @@ class WhipLinker {
 		this.hookTargetElements(target);
 		document.addEventListener('mousedown', e => {
 			if (this.sourceElements.indexOf(e.target) >= 0 && this.filterSourceElement(e.target)) {
-				 this._from(e.target);
-				
+				this._from(e.target);
+		
 				e.preventDefault();
 			}
 		});
 		document.addEventListener('mousemove', e => {
 			if (this.whiplinkElement) {
 				this._to(e.clientX, e.clientY);
-				
+		
 				e.preventDefault();
 			}
 		});
@@ -69,19 +69,19 @@ class WhipLinker {
 				} else {
 					this._miss();
 				}
-				
+		
 				e.preventDefault();
 			}
 		});
 		document.addEventListener('click', e => {
 			this.deselectWhiplinks();
-			
+		
 			e.preventDefault();
 		});
 		document.addEventListener('keyup', e => {
 			if (e.keyCode === 46 /*del*/) {
 				this.removeWhiplinks();
-				
+		
 				e.preventDefault();
 			}
 		});
