@@ -1,6 +1,6 @@
 {
   "name": "whiplinker",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Connect items visually by drawing whips/links/cables/connectors between them",
   "main": "dist/whiplinker.js",
   "scripts": {
