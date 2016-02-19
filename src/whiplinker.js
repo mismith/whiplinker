@@ -184,7 +184,7 @@ class WhipLinker {
 			whiplinkElement.classList.add(this.options.prefix + 'selected');
 			
 			// fire event
-			var hit = this.findHit(whiplinkElement);
+			var hit = this.findHit({whiplinkElement});
 			if (hit) {
 				this._emit('select', hit);
 			}
@@ -200,7 +200,7 @@ class WhipLinker {
 			whiplinkElement.classList.remove(this.options.prefix + 'selected');
 			
 			// fire event
-			var hit = this.findHit(whiplinkElement);
+			var hit = this.findHit({whiplinkElement});
 			if (hit) {
 				this._emit('deselect', hit);
 			}
@@ -219,7 +219,7 @@ class WhipLinker {
 		this.options.container.removeChild(whiplinkElement);
 		
 		// fire event
-		var hit = this.findHit(whiplinkElement);
+		var hit = this.findHit({whiplinkElement});
 		if (hit) {
 			this._emit('delete', hit);
 		}
@@ -238,9 +238,10 @@ class WhipLinker {
 		
 		return hit;
 	}
-	findHit(whiplinkElement) {
+	findHit(q) { // e.g.: q = {whiplinkElement: HTMLElement, ...}
+		var qkeys = Object.keys(q);
 		return this.hits.find(hit => {
-			return hit.whiplinkElement === whiplinkElement;
+			return qkeys.reduce((prev, key) => prev && hit[key] === q[key], true);
 		});
 	}
 	deleteHit(hit) {
@@ -337,11 +338,6 @@ class WhipLinker {
 	}
 	repaint() {
 		this._reverseForEach(this.hits, (hit, i) => {
-			// auto-delete if either source or target is missing
-			if ( ! this.options.container.contains(hit.sourceElement) || ! this.options.container.contains(hit.targetElement)) {
-				return this.deleteHit(hit);
-			}
-			
 			// from
 			this.__styleWhiplinkFrom(hit.whiplinkElement, hit.sourceElement);
 			

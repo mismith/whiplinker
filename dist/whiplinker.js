@@ -258,7 +258,7 @@ var WhipLinker = function () {
 				whiplinkElement.classList.add(this.options.prefix + 'selected');
 
 				// fire event
-				var hit = this.findHit(whiplinkElement);
+				var hit = this.findHit({ whiplinkElement: whiplinkElement });
 				if (hit) {
 					this._emit('select', hit);
 				}
@@ -276,7 +276,7 @@ var WhipLinker = function () {
 				whiplinkElement.classList.remove(this.options.prefix + 'selected');
 
 				// fire event
-				var hit = this.findHit(whiplinkElement);
+				var hit = this.findHit({ whiplinkElement: whiplinkElement });
 				if (hit) {
 					this._emit('deselect', hit);
 				}
@@ -303,7 +303,7 @@ var WhipLinker = function () {
 			this.options.container.removeChild(whiplinkElement);
 
 			// fire event
-			var hit = this.findHit(whiplinkElement);
+			var hit = this.findHit({ whiplinkElement: whiplinkElement });
 			if (hit) {
 				this._emit('delete', hit);
 			}
@@ -333,9 +333,13 @@ var WhipLinker = function () {
 		}
 	}, {
 		key: 'findHit',
-		value: function findHit(whiplinkElement) {
+		value: function findHit(q) {
+			// e.g.: q = {whiplinkElement: HTMLElement, ...}
+			var qkeys = Object.keys(q);
 			return this.hits.find(function (hit) {
-				return hit.whiplinkElement === whiplinkElement;
+				return qkeys.reduce(function (prev, key) {
+					return prev && hit[key] === q[key];
+				}, true);
 			});
 		}
 	}, {
@@ -459,11 +463,6 @@ var WhipLinker = function () {
 			var _this8 = this;
 
 			this._reverseForEach(this.hits, function (hit, i) {
-				// auto-delete if either source or target is missing
-				if (!_this8.options.container.contains(hit.sourceElement) || !_this8.options.container.contains(hit.targetElement)) {
-					return _this8.deleteHit(hit);
-				}
-
 				// from
 				_this8.__styleWhiplinkFrom(hit.whiplinkElement, hit.sourceElement);
 
