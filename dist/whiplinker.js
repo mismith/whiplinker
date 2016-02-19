@@ -478,6 +478,28 @@ var WhipLinker = function () {
 			});
 		}
 
+		// input/output syncing
+
+	}, {
+		key: 'sync',
+		value: function sync(hit, inputElement, outputElement) {
+			if (!hit || hit.sync) return; // only bind once
+
+			hit.sync = function () {
+				outputElement.value = inputElement.value;
+			};
+			inputElement.addEventListener('change', hit.sync);
+			hit.sync();
+		}
+	}, {
+		key: 'unsync',
+		value: function unsync(hit, inputElement) {
+			if (!hit || !hit.sync) return; // only unbind once
+
+			inputElement.removeEventListener('change', hit.sync);
+			hit.sync = null;
+		}
+
 		// event delegation
 
 	}, {

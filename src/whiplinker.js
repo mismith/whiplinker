@@ -351,6 +351,23 @@ class WhipLinker {
 		});
 	}
 	
+	// input/output syncing
+	sync(hit, inputElement, outputElement) {
+		if ( ! hit || hit.sync) return; // only bind once
+		
+		hit.sync = function() {
+			outputElement.value = inputElement.value;
+		};
+		inputElement.addEventListener('change', hit.sync);
+		hit.sync();
+	}
+	unsync(hit, inputElement) {
+		if ( ! hit || ! hit.sync) return; // only unbind once
+		
+		inputElement.removeEventListener('change', hit.sync);
+		hit.sync = null;
+	}
+	
 	// event delegation
 	data(data) {
 		if (data !== undefined) this._data = data;

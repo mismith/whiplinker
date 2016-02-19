@@ -65,10 +65,10 @@ window.addEventListener('DOMContentLoaded', function () {
 	// basic example usage
 	var wl = new WhipLinker('.start', '.end')
 		// filters
-		.addSourceFilter(function (detail) {
-			// limit to only one connection per source
-			return ! detail.sourceElement.checked;
-		})
+		// .addSourceFilter(function (detail) {
+		// 	// limit to only one connection per source
+		// 	return ! detail.sourceElement.checked;
+		// })
 		.addTargetFilter(function (detail) {
 			// limit to only one connection per target
 			return ! detail.targetElement.checked;
@@ -88,7 +88,7 @@ window.addEventListener('DOMContentLoaded', function () {
 		e.detail.sourceElement.checked = true;
 		e.detail.targetElement.checked = true;
 		
-		linkValues(e.detail.sourceElement.previousSibling, e.detail.targetElement.nextSibling);
+		wl.sync(e.detail, e.detail.sourceElement.previousSibling, e.detail.targetElement.nextSibling);
 		
 		//console.log('hit', e.detail);
 	});
@@ -110,23 +110,10 @@ window.addEventListener('DOMContentLoaded', function () {
 		e.detail.sourceElement.checked = false;
 		e.detail.targetElement.checked = false;
 		
-		unlinkValues(e.detail.sourceElement.previousSibling, e.detail.targetElement.nextSibling);
+		wl.unsync(e.detail, e.detail.sourceElement.previousSibling);
 		
 		//console.log('delete', e.detail);
 	});
-	
-	
-	// example helpers
-	function linkValues(input, output) {
-		input.onchange = function () {
-			output.value = this.value;
-		};
-		input.onchange();
-	}
-	function unlinkValues(input, output) {
-		input.onchange = null;
-		output.value = null;
-	}
 });
 </script>
 
