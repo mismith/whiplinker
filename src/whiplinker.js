@@ -144,6 +144,16 @@ class WhipLinker {
 		
 		return this; // chainable
 	}
+	removeSourceFilter(filter) {
+		if (typeof filter === 'function') this.sourceFilters.splice(this.sourceFilters.indexOf(filter), 1);
+		
+		return this; // chainable
+	}
+	removeTargetFilter(filter) {
+		if (typeof filter === 'function') this.targetFilters.splice(this.targetFilters.indexOf(filter), 1);
+		
+		return this; // chainable
+	}
 	
 	// selection
 	_hookWhiplink(whiplinkElement) {
@@ -176,7 +186,7 @@ class WhipLinker {
 			// fire event
 			var hit = this.findHit(whiplinkElement);
 			if (hit) {
-				this.emit('select', [hit]);
+				this._emit('select', hit);
 			}
 		}
 	}
@@ -192,7 +202,7 @@ class WhipLinker {
 			// fire event
 			var hit = this.findHit(whiplinkElement);
 			if (hit) {
-				this.emit('deselect', [hit]);
+				this._emit('deselect', hit);
 			}
 		}
 	}
@@ -211,7 +221,7 @@ class WhipLinker {
 		// fire event
 		var hit = this.findHit(whiplinkElement);
 		if (hit) {
-			this.emit('delete', [hit]);
+			this._emit('delete', hit);
 		}
 	}
 	removeWhiplinks(whiplinkElements = this.selectedWhiplinkElements) {
@@ -265,7 +275,7 @@ class WhipLinker {
 		this.whiplinkElement = whiplinkElement;
 		this.sourceElement = sourceElement;
 		
-		this.emit('from', [{sourceElement, whiplinkElement: whiplinkElement}]);
+		this._emit('from', {sourceElement, whiplinkElement: whiplinkElement});
 	}
 	__styleWhiplinkTo(whiplinkElement, x, y) {
 		x -= this._offset.left;
@@ -283,7 +293,7 @@ class WhipLinker {
 		if (this.whiplinkElement) {
 			this.__styleWhiplinkTo(this.whiplinkElement, x, y);
 			
-			this.emit('to', [{x, y, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}]);
+			this._emit('to', {x, y, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement});
 		}
 	}
 	_hit(targetElement) {
@@ -297,9 +307,10 @@ class WhipLinker {
 				targetElement,
 				sourceElement:   this.sourceElement,
 				whiplinkElement: this.whiplinkElement,
+				data:            this._data,
 			});
 			
-			this.emit('hit', [hit]);
+			this._emit('hit', hit);
 			
 			this._done();
 		}
@@ -312,14 +323,15 @@ class WhipLinker {
 				this.removeWhiplink(whiplinkElement);
 			}, 200);
 			
-			this.emit('miss', [{sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}]);
+			this._emit('miss', {sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement});
 			
 			this._done();
 		}
 	}
 	_done() {
-		this.emit('done', [{sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement}]);
+		this._emit('done', {sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement});
 		
+		this._data = undefined;
 		this.sourceElement = null;
 		this.whiplinkElement = false;
 	}
@@ -340,21 +352,20 @@ class WhipLinker {
 	}
 	
 	// event delegation
-	on(eventType, callback) {
-		if (typeof callback !== 'function') throw new Error('Callback must be a function.');
-		
-		this.events = this.events || {};
-		this.events[eventType] = this.events[eventType] || [];
-		this.events[eventType].push(callback);
-		
-		return this; // chainable
+	data(data) {
+		if (data !== undefined) this._data = data;
+		return this._data;
 	}
-	emit(eventType, args = []) {
-		if (this.events && this.events[eventType]) {
-			this.events[eventType].forEach(callback => {
-				callback.apply(this, args);
-			});
+	_emit(eventType, detail) {
+		Object.assign(detail, this.data);
+		var ev = new CustomEvent(this.options.prefix + eventType, {
+			bubbles: true,
+			detail: detail,
+		});
+		for(var k of ['sourceElement', 'targetElement']) {
+			if (detail[k] instanceof HTMLElement) {
+				detail[k].dispatchEvent(ev);
+			}
 		}
-		return this; // chainable
 	}
 }

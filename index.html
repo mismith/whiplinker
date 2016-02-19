@@ -27,78 +27,106 @@
 			border-left-color: rgba(0,0,0,.2);
 			margin-top: -10px;
 		}
+		input[type=number] {
+			width: 20px;
+			margin: 0 5px;
+		}
 	</style>
 </head>
 <body>
 
-<table width="300" align="center" style="text-align: center;">
+<table width="360" align="center" style="text-align: center;">
 	<tr>
 		<td colspan="2">
 			Drag from left to right<br /><br />
 		</td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" onclick="return false;" /></td>
-		<td><input type="radio" class="end" onclick="return false;" /></td>
+		<td><input type="number" value="1" /><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /><input type="number" readonly /></td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" onclick="return false;" /></td>
-		<td><input type="radio" class="end" onclick="return false;" /></td>
+		<td><input type="number" value="2" /><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /><input type="number" readonly /></td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" onclick="return false;" /></td>
-		<td><input type="radio" class="end" onclick="return false;" /></td>
+		<td><input type="number" value="3" /><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /><input type="number" readonly /></td>
 	</tr>
 	<tr>
-		<td><input type="radio" class="start" onclick="return false;" /></td>
-		<td><input type="radio" class="end" onclick="return false;" /></td>
+		<td><input type="number" value="4" /><input type="radio" class="start" onclick="return false;" /></td>
+		<td><input type="radio" class="end" onclick="return false;" /><input type="number" readonly /></td>
 	</tr>
 </table>
 
 <script src="dist/whiplinker.js"></script>
 <script>
 window.addEventListener('DOMContentLoaded', function () {
-	new WhipLinker('.start', '.end')
+	// basic example usage
+	var wl = new WhipLinker('.start', '.end')
 		// filters
-		.addSourceFilter(function (e) {
+		.addSourceFilter(function (detail) {
 			// limit to only one connection per source
-			return ! e.sourceElement.checked;
+			return ! detail.sourceElement.checked;
 		})
-		.addTargetFilter(function (e) {
+		.addTargetFilter(function (detail) {
 			// limit to only one connection per target
-			return ! e.targetElement.checked;
-		})
-		
-		// events
-		.on('from', function (e) {
-			//console.log('from', e);
-		})
-		.on('to', function (e) {
-			//console.log('to', e);
-		})
-		.on('hit', function (e) {
-			e.sourceElement.checked = true;
-			e.targetElement.checked = true;
-			//console.log('hit', e);
-		})
-		.on('miss', function (e) {
-			//console.log('miss', e);
-		})
-		.on('done', function (e) {
-			//console.log('done', e);
-		})
-		
-		.on('select', function (e) {
-			//console.log('select', e);
-		})
-		.on('deselect', function (e) {
-			//console.log('deselect', e);
-		})
-		.on('delete', function (e) {
-			e.sourceElement.checked = false;
-			e.targetElement.checked = false;
-			//console.log('delete', e);
+			return ! detail.targetElement.checked;
 		});
+		
+	// events
+	document.addEventListener('wl-from', function (e) {
+		// you can transfer/store data within e.detail
+		wl.data(e.detail.sourceElement.previousSibling.value);
+		
+		//console.log('from', e.detail, wl.data());
+	});
+	document.addEventListener('wl-to', function (e) {
+		//console.log('to', e.detail, wl.data());
+	});
+	document.addEventListener('wl-hit', function (e) {
+		e.detail.sourceElement.checked = true;
+		e.detail.targetElement.checked = true;
+		
+		linkValues(e.detail.sourceElement.previousSibling, e.detail.targetElement.nextSibling);
+		
+		//console.log('hit', e.detail);
+	});
+	document.addEventListener('wl-miss', function (e) {
+		//console.log('miss', e.detail);
+	});
+	document.addEventListener('wl-done', function (e) {
+		//console.log('done', e.detail);
+	});
+	
+	document.addEventListener('wl-select', function (e) {
+		//console.log('select', e.detail);
+	});
+	document.addEventListener('wl-deselect', function (e) {
+		//console.log('deselect', e.detail);
+	});
+	
+	document.addEventListener('wl-delete', function (e) {
+		e.detail.sourceElement.checked = false;
+		e.detail.targetElement.checked = false;
+		
+		unlinkValues(e.detail.sourceElement.previousSibling, e.detail.targetElement.nextSibling);
+		
+		//console.log('delete', e.detail);
+	});
+	
+	
+	// example helpers
+	function linkValues(input, output) {
+		input.onchange = function () {
+			output.value = this.value;
+		};
+		input.onchange();
+	}
+	function unlinkValues(input, output) {
+		input.onchange = null;
+		output.value = null;
+	}
 });
 </script>
 

@@ -207,6 +207,20 @@ var WhipLinker = function () {
 
 			return this; // chainable
 		}
+	}, {
+		key: 'removeSourceFilter',
+		value: function removeSourceFilter(filter) {
+			if (typeof filter === 'function') this.sourceFilters.splice(this.sourceFilters.indexOf(filter), 1);
+
+			return this; // chainable
+		}
+	}, {
+		key: 'removeTargetFilter',
+		value: function removeTargetFilter(filter) {
+			if (typeof filter === 'function') this.targetFilters.splice(this.targetFilters.indexOf(filter), 1);
+
+			return this; // chainable
+		}
 
 		// selection
 
@@ -246,7 +260,7 @@ var WhipLinker = function () {
 				// fire event
 				var hit = this.findHit(whiplinkElement);
 				if (hit) {
-					this.emit('select', [hit]);
+					this._emit('select', hit);
 				}
 			}
 		}
@@ -264,7 +278,7 @@ var WhipLinker = function () {
 				// fire event
 				var hit = this.findHit(whiplinkElement);
 				if (hit) {
-					this.emit('deselect', [hit]);
+					this._emit('deselect', hit);
 				}
 			}
 		}
@@ -291,7 +305,7 @@ var WhipLinker = function () {
 			// fire event
 			var hit = this.findHit(whiplinkElement);
 			if (hit) {
-				this.emit('delete', [hit]);
+				this._emit('delete', hit);
 			}
 		}
 	}, {
@@ -367,7 +381,7 @@ var WhipLinker = function () {
 			this.whiplinkElement = whiplinkElement;
 			this.sourceElement = sourceElement;
 
-			this.emit('from', [{ sourceElement: sourceElement, whiplinkElement: whiplinkElement }]);
+			this._emit('from', { sourceElement: sourceElement, whiplinkElement: whiplinkElement });
 		}
 	}, {
 		key: '__styleWhiplinkTo',
@@ -389,7 +403,7 @@ var WhipLinker = function () {
 			if (this.whiplinkElement) {
 				this.__styleWhiplinkTo(this.whiplinkElement, x, y);
 
-				this.emit('to', [{ x: x, y: y, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement }]);
+				this._emit('to', { x: x, y: y, sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement });
 			}
 		}
 	}, {
@@ -404,10 +418,11 @@ var WhipLinker = function () {
 				var hit = this.addHit({
 					targetElement: targetElement,
 					sourceElement: this.sourceElement,
-					whiplinkElement: this.whiplinkElement
+					whiplinkElement: this.whiplinkElement,
+					data: this._data
 				});
 
-				this.emit('hit', [hit]);
+				this._emit('hit', hit);
 
 				this._done();
 			}
@@ -424,7 +439,7 @@ var WhipLinker = function () {
 					_this7.removeWhiplink(whiplinkElement);
 				}, 200);
 
-				this.emit('miss', [{ sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement }]);
+				this._emit('miss', { sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement });
 
 				this._done();
 			}
@@ -432,8 +447,9 @@ var WhipLinker = function () {
 	}, {
 		key: '_done',
 		value: function _done() {
-			this.emit('done', [{ sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement }]);
+			this._emit('done', { sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement });
 
+			this._data = undefined;
 			this.sourceElement = null;
 			this.whiplinkElement = false;
 		}
@@ -465,29 +481,26 @@ var WhipLinker = function () {
 		// event delegation
 
 	}, {
-		key: 'on',
-		value: function on(eventType, callback) {
-			if (typeof callback !== 'function') throw new Error('Callback must be a function.');
-
-			this.events = this.events || {};
-			this.events[eventType] = this.events[eventType] || [];
-			this.events[eventType].push(callback);
-
-			return this; // chainable
+		key: 'data',
+		value: function data(_data) {
+			if (_data !== undefined) this._data = _data;
+			return this._data;
 		}
 	}, {
-		key: 'emit',
-		value: function emit(eventType) {
-			var _this9 = this;
-
-			var args = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
-
-			if (this.events && this.events[eventType]) {
-				this.events[eventType].forEach(function (callback) {
-					callback.apply(_this9, args);
-				});
+		key: '_emit',
+		value: function _emit(eventType, detail) {
+			Object.assign(detail, this.data);
+			var ev = new CustomEvent(this.options.prefix + eventType, {
+				bubbles: true,
+				detail: detail
+			});
+			var _arr = ['sourceElement', 'targetElement'];
+			for (var _i = 0; _i < _arr.length; _i++) {
+				var k = _arr[_i];
+				if (detail[k] instanceof HTMLElement) {
+					detail[k].dispatchEvent(ev);
+				}
 			}
-			return this; // chainable
 		}
 	}]);
 
