@@ -80,7 +80,9 @@ class WhipLinker {
 		});
 		document.addEventListener('keyup', e => {
 			if (e.keyCode === 46 /*del*/) {
-				this.removeWhiplinks();
+				this._reverseForEach(this.selectedWhiplinkElements, whiplinkElement => {
+					this.deleteHit(this.findHit({whiplinkElement}));
+				});
 		
 				e.preventDefault();
 			}
@@ -217,17 +219,6 @@ class WhipLinker {
 		
 		// remove from DOM
 		this.options.container.removeChild(whiplinkElement);
-		
-		// fire event
-		var hit = this.findHit({whiplinkElement});
-		if (hit) {
-			this._emit('delete', hit);
-		}
-	}
-	removeWhiplinks(whiplinkElements = this.selectedWhiplinkElements) {
-		this._reverseForEach(whiplinkElements, whiplinkElement => {
-			this.removeWhiplink(whiplinkElement);
-		});
 	}
 	
 	// storage
@@ -245,11 +236,13 @@ class WhipLinker {
 		});
 	}
 	deleteHit(hit) {
-		// make sure it doesn't linger in DOM
+		// make sure whiplink doesn't linger in DOM
 		this.removeWhiplink(hit.whiplinkElement);
 		
 		// remove from hits
 		this.hits.splice(this.hits.indexOf(hit), 1);
+		
+		this._emit('delete', hit);
 	}
 	
 	// drawing

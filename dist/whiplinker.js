@@ -68,7 +68,9 @@ var WhipLinker = function () {
 		});
 		document.addEventListener('keyup', function (e) {
 			if (e.keyCode === 46 /*del*/) {
-					_this.removeWhiplinks();
+					_this._reverseForEach(_this.selectedWhiplinkElements, function (whiplinkElement) {
+						_this.deleteHit(_this.findHit({ whiplinkElement: whiplinkElement }));
+					});
 
 					e.preventDefault();
 				}
@@ -301,23 +303,6 @@ var WhipLinker = function () {
 
 			// remove from DOM
 			this.options.container.removeChild(whiplinkElement);
-
-			// fire event
-			var hit = this.findHit({ whiplinkElement: whiplinkElement });
-			if (hit) {
-				this._emit('delete', hit);
-			}
-		}
-	}, {
-		key: 'removeWhiplinks',
-		value: function removeWhiplinks() {
-			var _this6 = this;
-
-			var whiplinkElements = arguments.length <= 0 || arguments[0] === undefined ? this.selectedWhiplinkElements : arguments[0];
-
-			this._reverseForEach(whiplinkElements, function (whiplinkElement) {
-				_this6.removeWhiplink(whiplinkElement);
-			});
 		}
 
 		// storage
@@ -345,11 +330,13 @@ var WhipLinker = function () {
 	}, {
 		key: 'deleteHit',
 		value: function deleteHit(hit) {
-			// make sure it doesn't linger in DOM
+			// make sure whiplink doesn't linger in DOM
 			this.removeWhiplink(hit.whiplinkElement);
 
 			// remove from hits
 			this.hits.splice(this.hits.indexOf(hit), 1);
+
+			this._emit('delete', hit);
 		}
 
 		// drawing
@@ -434,13 +421,13 @@ var WhipLinker = function () {
 	}, {
 		key: '_miss',
 		value: function _miss() {
-			var _this7 = this;
+			var _this6 = this;
 
 			if (this.whiplinkElement) {
 				this.whiplinkElement.classList.add(this.options.prefix + 'missed');
 				var whiplinkElement = this.whiplinkElement;
 				setTimeout(function () {
-					_this7.removeWhiplink(whiplinkElement);
+					_this6.removeWhiplink(whiplinkElement);
 				}, 200);
 
 				this._emit('miss', { sourceElement: this.sourceElement, whiplinkElement: this.whiplinkElement });
@@ -460,20 +447,20 @@ var WhipLinker = function () {
 	}, {
 		key: 'repaint',
 		value: function repaint() {
-			var _this8 = this;
+			var _this7 = this;
 
 			this._reverseForEach(this.hits, function (hit, i) {
 				// from
-				_this8.__styleWhiplinkFrom(hit.whiplinkElement, hit.sourceElement);
+				_this7.__styleWhiplinkFrom(hit.whiplinkElement, hit.sourceElement);
 
 				// to
 
-				var _snap = _this8.snap(hit.targetElement, _this8.options.snap);
+				var _snap = _this7.snap(hit.targetElement, _this7.options.snap);
 
 				var x = _snap.left;
 				var y = _snap.top;
 
-				_this8.__styleWhiplinkTo(hit.whiplinkElement, x, y);
+				_this7.__styleWhiplinkTo(hit.whiplinkElement, x, y);
 			});
 		}
 
