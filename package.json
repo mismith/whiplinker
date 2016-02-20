@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "babel src --watch --out-file dist/whiplinker.js --presets es2015",
-    "serve": "browser-sync start --server --files '*,dist/*' --no-ghost-mode --no-notify",
+    "serve": "browser-sync start --server --files '*,dist/*' --no-ghost-mode --no-notify --no-ui",
     "start": "npm run build & npm run serve"
   },
   "keywords": [
